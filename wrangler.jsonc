@@ -27,8 +27,10 @@
 
   // Variables públicas. Los secretos (SESSION_SECRET, CRON_SECRET, SUPER_*) NO van aquí: `wrangler secret put NOMBRE`.
   "vars": {
-    "BASE_DOMAIN": "localhost",     // en producción: "tudominio.com"
-    "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure, sin ?negocio=)
+    // "BASE_DOMAIN": "localhost",     // en producción: "tudominio.com"
+    // "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure, sin ?negocio=)
+    "BASE_DOMAIN": "presupuesto-examenes.dualstudio-ve-6e8.workers.dev",
+    "ENVIRONMENT": "production",
     "TZ_OFFSET_MIN": "-240",
     "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",
     "BCV_STALE_HOURS": "36",
