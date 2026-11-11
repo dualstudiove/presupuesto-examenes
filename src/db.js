@@ -1,74 +1,54 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ÚNICO módulo que toca la base de datos. El resto de la aplicación solo usa:
-//   db.all(sql, params)  -> filas        db.get(sql, params) -> fila | undefined
-//   db.run(sql, params)  -> { changes }  db.tx(async (t) => { ... }) -> transacción
-// Los parámetros se escriben con "?" (el adaptador de PostgreSQL los convierte).
+//   db.all(sql, params) -> filas      db.get(sql, params) -> fila | undefined
+//   db.run(sql, params) -> { changes } db.tx(async (t) => { ... })
 //
-// Dentro de db.tx() usar SOLO el objeto "t" (t.all / t.get / t.run), nunca "db".
-//
-// Por defecto usa SQLite (node:sqlite, incluido en Node 22). Si se define
-// DATABASE_URL=postgres://..., se carga src/db.pg.js (PostgreSQL).
+// Aquí el motor es Cloudflare D1. Diferencias importantes con una base "normal":
+//  • D1 NO tiene transacciones interactivas (BEGIN/COMMIT). db.tx() funciona así:
+//      - las LECTURAS (t.all / t.get) se ejecutan en el momento;
+//      - las ESCRITURAS (t.run) se acumulan y, al terminar la función, se envían juntas con
+//        D1.batch(), que es atómico (o se aplican todas o ninguna).
+//    Por eso dentro de db.tx() no se debe leer algo que se acaba de escribir en la misma función,
+//    y t.run() devuelve { changes: undefined } (no se conoce hasta confirmar).
+//  • Máximo 100 parámetros "?" por consulta.
+//  • Las claves foráneas siempre están activas.
+// El adaptador es el mismo para pruebas locales: se le pasa cualquier objeto con la API de D1
+// (ver src/db.local.js, que la imita sobre node:sqlite).
 // ─────────────────────────────────────────────────────────────────────────────
-import fs from 'node:fs';
-import path from 'node:path';
-import { env } from './env.js';
 
-const SCHEMA = fs.readFileSync(new URL('../db/schema.sql', import.meta.url), 'utf8');
+let d1 = null;
 
-async function crearSqlite() {
-  const { DatabaseSync } = await import('node:sqlite');
-  const file = env.databaseFile;
-  if (file !== ':memory:') fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
-  const conn = new DatabaseSync(file);
-  conn.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
-
-  const norm = (p = []) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
-  const sAll = (sql, p) => conn.prepare(sql).all(...norm(p)).map((r) => ({ ...r }));
-  const sGet = (sql, p) => {
-    const r = conn.prepare(sql).get(...norm(p));
-    return r ? { ...r } : undefined;
-  };
-  const sRun = (sql, p) => {
-    const r = conn.prepare(sql).run(...norm(p));
-    return { changes: Number(r.changes) };
-  };
-
-  // Cola: SQLite usa una sola conexión; así ninguna consulta se mezcla con una transacción abierta.
-  let chain = Promise.resolve();
-  const enqueue = (fn) => {
-    const p = chain.then(fn);
-    chain = p.then(() => {}, () => {});
-    return p;
-  };
-  const txApi = {
-    all: async (sql, p) => sAll(sql, p),
-    get: async (sql, p) => sGet(sql, p),
-    run: async (sql, p) => sRun(sql, p),
-  };
-
-  return {
-    dialect: 'sqlite',
-    all: (sql, p) => enqueue(() => sAll(sql, p)),
-    get: (sql, p) => enqueue(() => sGet(sql, p)),
-    run: (sql, p) => enqueue(() => sRun(sql, p)),
-    exec: (sql) => enqueue(() => conn.exec(sql)),
-    tx: (fn) =>
-      enqueue(async () => {
-        conn.exec('BEGIN IMMEDIATE');
-        try {
-          const r = await fn(txApi);
-          conn.exec('COMMIT');
-          return r;
-        } catch (e) {
-          try { conn.exec('ROLLBACK'); } catch { /* ya revertida */ }
-          throw e;
-        }
-      }),
-  };
+/** Enlaza la base de datos (binding D1). server.js lo llama en cada petición. */
+export function bindD1(binding) {
+  if (!binding) throw new Error('Falta el binding D1 "DB" (revisa wrangler.jsonc → d1_databases).');
+  d1 = binding;
 }
 
-export const db = env.databaseUrl ? (await import('./db.pg.js')).crearPostgres(env.databaseUrl) : await crearSqlite();
+const norm = (p = []) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
+const stmt = (sql, p) => {
+  if (!d1) throw new Error('La base de datos no está enlazada.');
+  const s = d1.prepare(sql);
+  const v = norm(p);
+  return v.length ? s.bind(...v) : s;
+};
 
-export async function initDb() {
-  await db.exec(SCHEMA);
-}
+export const db = {
+  dialect: 'd1',
+  all: async (sql, p) => (await stmt(sql, p).all()).results ?? [],
+  get: async (sql, p) => (await stmt(sql, p).first()) ?? undefined,
+  run: async (sql, p) => {
+    const r = await stmt(sql, p).run();
+    return { changes: Number(r?.meta?.changes ?? 0) };
+  },
+  tx: async (fn) => {
+    const pendientes = [];
+    const t = {
+      all: async (sql, p) => (await stmt(sql, p).all()).results ?? [],
+      get: async (sql, p) => (await stmt(sql, p).first()) ?? undefined,
+      run: async (sql, p) => { pendientes.push(stmt(sql, p)); return { changes: undefined }; },
+    };
+    const resultado = await fn(t);
+    if (pendientes.length) await d1.batch(pendientes); // atómico
+    return resultado;
+  },
+};

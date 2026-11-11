@@ -22,7 +22,7 @@ export const invalidarNegocios = () => cacheNegocios.clear();
 export const getConfig = (negocioId) => db.get('SELECT * FROM configuracion_negocio WHERE negocio_id = ?', [negocioId]);
 
 export function validarSlug(slug) {
-  if (typeof slug !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])$/.test(slug) || RESERVADOS.has(slug)) {
+  if (typeof slug !== 'string' || slug.length > 28 || !(/^[a-z0-9][a-z0-9-]*$/.test(slug)) || RESERVADOS.has(slug)) {
     throw new HttpError(400, 'El subdominio debe tener entre 2 y 30 letras minúsculas, números o guiones, y no puede ser una palabra reservada.');
   }
   return slug;
@@ -81,6 +81,20 @@ export async function resolverTasa(cfg) {
  *  - guarda únicamente datos para estadísticas (nunca datos del paciente).
  */
 export async function crearPresupuesto(negocio, input, opts = {}) {
+  // D1 no tiene transacciones interactivas: dos presupuestos simultáneos pueden calcular la misma
+  // secuencia. La restricción UNIQUE (negocio_id, secuencia) lo detecta y aquí se reintenta.
+  for (let intento = 0; ; intento++) {
+    try {
+      return await crearPresupuestoUnaVez(negocio, input, opts);
+    } catch (e) {
+      const choque = /UNIQUE constraint failed: presupuestos\./i.test(String(e?.message || e));
+      if (!choque || intento >= 9) throw e;
+      await new Promise((r) => setTimeout(r, Math.random() * 25 * (intento + 1))); // espera aleatoria para desempatar
+    }
+  }
+}
+
+async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
   const items = Array.isArray(input?.items) ? input.items : [];
   if (!items.length) throw new HttpError(400, 'Agrega al menos un examen o un perfil.');
   if (items.length > 80) throw new HttpError(400, 'El presupuesto tiene demasiados ítems.');

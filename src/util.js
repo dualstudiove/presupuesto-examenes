@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { env } from './env.js';
 
 export class HttpError extends Error {
@@ -8,7 +7,7 @@ export class HttpError extends Error {
   }
 }
 
-export const uuid = () => crypto.randomUUID();
+export const uuid = () => globalThis.crypto.randomUUID();
 export const nowIso = () => new Date().toISOString();
 
 /** Fecha local (huso configurado) de un instante: { dia:'YYYY-MM-DD', hora:0-23, dow:0-6 } */

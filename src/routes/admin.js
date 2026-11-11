@@ -185,8 +185,13 @@ export function registrarAdmin(r) {
       throw new HttpError(400, 'Elige al menos un examen para el perfil.');
     }
     const unicos = [...new Set(ids)];
-    const n = await db.get(`SELECT COUNT(*) AS n FROM examenes WHERE negocio_id = ? AND id IN (${placeholders(unicos)})`, [nid, ...unicos]);
-    if (Number(n.n) !== unicos.length) throw new HttpError(400, 'Algún examen elegido no existe.');
+    let hallados = 0;
+    for (let i = 0; i < unicos.length; i += 90) { // D1 admite 100 parámetros por consulta
+      const trozo = unicos.slice(i, i + 90);
+      const n = await db.get(`SELECT COUNT(*) AS n FROM examenes WHERE negocio_id = ? AND id IN (${placeholders(trozo)})`, [nid, ...trozo]);
+      hallados += Number(n.n);
+    }
+    if (hallados !== unicos.length) throw new HttpError(400, 'Algún examen elegido no existe.');
     return unicos;
   };
 

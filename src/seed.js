@@ -1,10 +1,21 @@
+// Datos iniciales para Cloudflare D1.
+//
+// D1 no se puede llenar desde un script de Node, así que este programa:
+//   1. crea una base SQLite temporal en memoria con el mismo esquema (imitando la API de D1),
+//   2. ejecuta sobre ella la misma lógica de siembra (superadministrador, negocios de ejemplo...),
+//   3. vuelca el resultado como archivo SQL (seed.sql), que se carga con wrangler:
+//        wrangler d1 execute presupuesto --local  --file=seed.sql     (desarrollo)
+//        wrangler d1 execute presupuesto --remote --file=seed.sql     (producción)
+//
 // Uso:
-//   npm run seed        -> crea (o actualiza) solo el superadministrador
-//   npm run seed:demo   -> además crea los negocios de ejemplo con catálogo y estadísticas ficticias
+//   npm run seed        -> seed.sql solo con el superadministrador (SUPER_EMAIL / SUPER_PASSWORD)
+//   npm run seed:demo   -> además negocios de ejemplo con catálogo y estadísticas ficticias
+// Solo para una base VACÍA (los INSERT fallarían si los datos ya existen).
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { env } from './env.js';
-import { db, initDb } from './db.js';
+import { env, configurarEnv } from './env.js';
+import { db, bindD1 } from './db.js';
 import { hashPassword } from './auth.js';
 import { crearNegocio, crearPresupuesto } from './negocio.js';
 import { uuid, nowIso, parteFecha } from './util.js';
@@ -158,8 +169,8 @@ async function generarActividad(negocio, { presupuestos, semilla }) {
   }
 }
 
+/** Siembra sobre la base enlazada con bindD1(). */
 export async function sembrar({ demo = false } = {}) {
-  await initDb();
   const email = (env.superEmail || 'super@plataforma.test').toLowerCase();
   const password = env.superPassword || 'Super12345';
   const hash = await hashPassword(password);
@@ -197,16 +208,49 @@ export async function sembrar({ demo = false } = {}) {
   return out;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const demo = process.argv.includes('--demo');
-  sembrar({ demo }).then((r) => {
-    console.log('\nSuperadministrador (panel en http://localhost:3000/super):');
-    console.log(`  correo: ${r.superadmin.email}\n  clave:  ${r.superadmin.password}`);
-    if (r.demo) {
-      console.log('\nNegocios de ejemplo (usa subdominios .localhost):');
-      for (const d of r.demo) console.log(`  http://${d.negocio}.localhost:3000   admin: http://${d.negocio}.localhost:3000/admin  (${d.admin} / ${d.password})`);
-      console.log('\nOJO: son credenciales de ejemplo. No las uses en producción.');
+// ── Volcado a SQL ──
+const TABLAS = ['negocios', 'configuracion_negocio', 'superadmins', 'usuarios_admin', 'categorias', 'examenes', 'perfiles',
+  'perfil_examenes', 'origenes', 'tasa_bcv', 'presupuestos', 'presupuesto_items', 'presupuesto_examenes', 'visitas']; // padres antes que hijos
+
+const literal = (v) => (v === null || v === undefined ? 'NULL'
+  : typeof v === 'number' || typeof v === 'bigint' ? String(v)
+  : `'${String(v).replace(/'/g, "''")}'`);
+
+export async function volcarSql() {
+  const out = ['-- Generado por src/seed.js. Para una base vacía.'];
+  for (const t of TABLAS) {
+    const filas = await db.all(`SELECT * FROM ${t}`);
+    for (const f of filas) {
+      const cols = Object.keys(f);
+      out.push(`INSERT INTO ${t} (${cols.join(', ')}) VALUES (${cols.map((c) => literal(f[c])).join(', ')});`);
     }
-    process.exit(0);
-  }).catch((e) => { console.error(e); process.exit(1); });
+  }
+  return `${out.join('\n')}\n`;
+}
+
+async function main() {
+  configurarEnv(process.env);
+  const { crearD1Local } = await import('./db.local.js');
+  const d1 = crearD1Local(':memory:');
+  await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
+  bindD1(d1);
+  const demo = process.argv.includes('--demo');
+  const r = await sembrar({ demo });
+  const i = process.argv.indexOf('--out');
+  const destino = path.resolve(i > 0 ? process.argv[i + 1] : 'seed.sql');
+  fs.writeFileSync(destino, await volcarSql());
+  console.log(`\nSQL generado: ${destino}`);
+  console.log('Cárgalo con:');
+  console.log('  npx wrangler d1 execute presupuesto --local  --file=seed.sql   (desarrollo)');
+  console.log('  npx wrangler d1 execute presupuesto --remote --file=seed.sql   (producción)');
+  console.log(`\nSuperadministrador:  correo: ${r.superadmin.email}   clave: ${r.superadmin.password}`);
+  if (r.demo) {
+    console.log('\nNegocios de ejemplo (en desarrollo: http://demo.localhost:8787):');
+    for (const d of r.demo) console.log(`  ${d.negocio}  admin: ${d.admin} / ${d.password}`);
+    console.log('\nOJO: son credenciales de ejemplo. No las uses en producción.');
+  }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
 }

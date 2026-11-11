@@ -1,11 +1,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { crearEntorno, levantar } from './ayudas.js';
 
-process.env.DATABASE_FILE = ':memory:';
-process.env.BCV_DISABLED = 'true';
-process.env.SESSION_SECRET = 'test-secret-test-secret-test-secret-1234';
-process.env.BASE_DOMAIN = 'localhost';
 
 const RANGO = (() => { const h = new Date(Date.now() + 86400000).toISOString().slice(0, 10); const d = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10); return { desde: d, hasta: h }; })();
 let server;
@@ -46,11 +43,15 @@ const demo = (o) => pedir({ host: 'demo.localhost', ...o });
 const norte = (o) => pedir({ host: 'norte.localhost', ...o });
 
 before(async () => {
+  const bindings = await crearEntorno();
+  const { configurarEnv } = await import('../src/env.js');
+  const { bindD1 } = await import('../src/db.js');
+  configurarEnv(bindings);
+  bindD1(bindings.DB);
   const { sembrar } = await import('../src/seed.js');
   await sembrar({ demo: true });
-  const { start } = await import('../src/server.js');
-  server = await start({ port: 0, host: '127.0.0.1', programador: false });
-  port = server.address().port;
+  const worker = (await import('../src/server.js')).default;
+  ({ server, port } = await levantar(worker, bindings));
 });
 
 after(() => server?.close());

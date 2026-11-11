@@ -1,29 +1,42 @@
 import crypto from 'node:crypto';
-import { promisify } from 'node:util';
 import { env } from './env.js';
 
-const scrypt = promisify(crypto.scrypt);
+// Contraseñas: PBKDF2-SHA256 con WebCrypto. Cloudflare Workers admite como máximo 100 000 iteraciones
+// y limita el tiempo de CPU por petición, por eso no se usa scrypt.
+const ITER = 100_000;
+const hex = (u8) => Array.from(u8, (b) => b.toString(16).padStart(2, '0')).join('');
+const deHex = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16));
+
+async function derivar(pw, salt, iter = ITER) {
+  const k = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await globalThis.crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, k, 256));
+}
+
+const iguales = (a, b) => {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i];
+  return d === 0;
+};
 
 export async function hashPassword(pw) {
-  const salt = crypto.randomBytes(16);
-  const h = await scrypt(pw, salt, 64);
-  return `s1$${salt.toString('hex')}$${h.toString('hex')}`;
+  const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+  return `s2$${hex(salt)}$${hex(await derivar(pw, salt))}`;
 }
 
 export async function verifyPassword(pw, stored) {
   try {
     const [v, s, h] = String(stored).split('$');
-    if (v !== 's1') return false;
-    const esperado = Buffer.from(h, 'hex');
-    const calculado = await scrypt(pw, Buffer.from(s, 'hex'), esperado.length);
-    return crypto.timingSafeEqual(calculado, esperado);
+    if (v !== 's2') return false;
+    return iguales(await derivar(pw, deHex(s)), deHex(h));
   } catch {
     return false;
   }
 }
 
-// Hash de relleno para que el tiempo de respuesta no revele si el correo existe.
-export const HASH_RELLENO = await hashPassword('relleno-no-usar');
+// Hash de relleno (válido, de una clave que nadie conoce) para que el tiempo de respuesta
+// no revele si el correo existe.
+export const HASH_RELLENO = 's2$0102030405060708090a0b0c0d0e0f10$5aa43dd56e91636b235fb6cfdafb7c1c15b530ab09bd54b1b685e7005892d733';
 
 // ── Sesiones: cookie firmada con HMAC (sin estado en el servidor) ──
 const b64 = (b) => Buffer.from(b).toString('base64url');
@@ -78,6 +91,7 @@ export function bloqueoRestante(key) {
   return e && e.hasta > Date.now() ? Math.ceil((e.hasta - Date.now()) / 1000) : 0;
 }
 export function registrarFallo(key) {
+  purgar();
   const ahora = Date.now();
   let e = intentos.get(key);
   if (!e || ahora - e.inicio > VENTANA) {
@@ -92,6 +106,7 @@ export const limpiarFallos = (key) => intentos.delete(key);
 // ── Límite de peticiones por clave (en memoria) ──
 const cubos = new Map();
 export function limite(key, max, ventanaMs) {
+  purgar();
   const ahora = Date.now();
   const c = cubos.get(key);
   if (!c || ahora > c.reinicio) {
@@ -102,8 +117,10 @@ export function limite(key, max, ventanaMs) {
   return c.n <= max;
 }
 
-setInterval(() => {
+// En Workers no hay temporizadores de fondo: se limpian los mapas de forma oportunista.
+function purgar() {
+  if (intentos.size + cubos.size < 2000) return;
   const ahora = Date.now();
   for (const [k, e] of intentos) if (e.hasta < ahora && ahora - e.inicio > VENTANA) intentos.delete(k);
   for (const [k, c] of cubos) if (ahora > c.reinicio) cubos.delete(k);
-}, 5 * 60 * 1000).unref();
+}

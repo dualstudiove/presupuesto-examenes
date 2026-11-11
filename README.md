@@ -1,89 +1,56 @@
-# Presupuesto de exámenes
+# Presupuesto de exámenes · versión Cloudflare (Hono + D1)
 
-Calculadora de presupuestos para laboratorios clínicos y clínicas. Aplicación **multi-negocio** (marca blanca): una sola instalación atiende a muchos negocios, cada uno en su propio **subdominio** (`labcentral.tudominio.com`), con su nombre, logo y color.
+Misma aplicación multi-negocio (subdominio por laboratorio, paciente / administrador / superadministrador), portada a **Cloudflare Workers + Hono + D1**.
 
-- **Paciente** (sin login): arma su presupuesto, lo exporta en PDF, imagen o texto.
-- **Administrador del negocio** (`/admin`): exámenes, perfiles, categorías, precios, configuración y dashboard de estadísticas.
-- **Superadministrador** (`/super`): crea negocios/subdominios y sus administradores; gestiona la tasa BCV.
+> **Estado:** la lógica se probó en Node con 26 pruebas (20 de API + 6 de D1/seed/contraseñas), pero **no se ejecutó en el entorno real de Cloudflare** (`wrangler dev` / despliegue) ni con el paquete `hono` real: el entorno donde se escribió no tenía acceso a npm. Las pruebas usan un D1 simulado sobre SQLite y un sustituto mínimo de Hono (si `hono` está instalado, `npm test` usa el real). Prueba primero con `wrangler dev` antes de publicar.
 
-Sin dependencias externas: solo Node.js ≥ 22.13.
+## Qué cambió respecto a la versión Node
+
+| Archivo | Cambio |
+|---|---|
+| `src/server.js` | **Reescrito**: app Hono. Resuelve el negocio por `Host`, convierte las rutas de `src/routes/*` en rutas de Hono, sirve páginas con el binding `ASSETS` y exporta `{ fetch, scheduled }`. |
+| `src/seed.js` | **Reescrito**: D1 no se llena desde Node. Genera `seed.sql` (siembra sobre un SQLite temporal y lo vuelca); se carga con `wrangler d1 execute`. |
+| `src/db.js` | Ahora es el adaptador **D1**. Sin transacciones interactivas: `db.tx` ejecuta las lecturas al momento y envía las escrituras juntas con `D1.batch()` (atómico). |
+| `src/env.js` | Sin `process.env`/archivos: `configurarEnv(bindings)` en cada petición. |
+| `src/auth.js` | Contraseñas con PBKDF2-SHA256 (WebCrypto, 100 000 iteraciones: el máximo en Workers). Los hashes `s1$` (scrypt) de la versión Node **no** sirven aquí. |
+| `src/bcv.js` | Sin temporizadores: la tasa se actualiza con un **Cron Trigger** cada hora; las consultas en segundo plano usan `waitUntil`. |
+| `src/http.js`, `src/util.js`, `src/negocio.js`, `src/routes/admin.js` | Ajustes menores (router neutral; reintento del código correlativo del presupuesto; consultas con ≤ 90 parámetros porque D1 admite 100). |
+| `migrations/0001_schema.sql` | El esquema (antes `db/schema.sql`). |
+| `src/db.local.js`, `test/` | Solo desarrollo: imitan D1 sobre `node:sqlite` para probar y generar el seed. No se despliegan. |
+
+Eliminados: `src/db.pg.js` (PostgreSQL) y `.env.example` (ahora `wrangler.jsonc` y `.dev.vars`).
 
 ## Probar en local
 
 ```bash
-npm run seed:demo     # crea la base con datos de ejemplo
-npm start             # http://localhost:3000
+npm install
+cp .dev.vars.example .dev.vars              # y cambia SESSION_SECRET
+npx wrangler d1 create presupuesto          # copia el database_id a wrangler.jsonc (en local sirve cualquier valor)
+npm run db:migrar:local                     # crea las tablas
+npm run seed:demo                           # genera seed.sql (negocios de ejemplo)
+npx wrangler d1 execute presupuesto --local --file=seed.sql
+npm run dev                                 # http://demo.localhost:8787  ·  /admin  ·  http://localhost:8787/super
 ```
 
-| Qué | Dirección | Usuario | Clave |
-|---|---|---|---|
-| Laboratorio Demo (paciente) | http://demo.localhost:3000 | — | — |
-| Admin del demo | http://demo.localhost:3000/admin | admin@demo.test | Demo12345 |
-| Admin de Clínica Norte | http://norte.localhost:3000/admin | admin@norte.test | Norte12345 |
-| Superadmin | http://localhost:3000/super | super@plataforma.test | Super12345 |
+Credenciales de ejemplo: `admin@demo.test` / `Demo12345`, `admin@norte.test` / `Norte12345`, `super@plataforma.test` / `Super12345` (cámbialas con `SUPER_EMAIL`/`SUPER_PASSWORD` antes de `npm run seed`; no uses `seed:demo` en producción).
 
-> ⚠️ Son credenciales de prueba. **No las uses en producción**: crea tu superadmin con `SUPER_EMAIL` y `SUPER_PASSWORD` y no ejecutes `seed:demo`.
+## Publicar
 
-`*.localhost` suele resolverse solo en Chrome/Firefox. Si no, usa `http://localhost:3000/?negocio=demo` (solo en desarrollo, `ALLOW_TENANT_QUERY`).
+1. `npx wrangler d1 create presupuesto` → pega el `database_id` en `wrangler.jsonc`.
+2. `npm run db:migrar` (tablas en producción).
+3. `SUPER_EMAIL=tu@correo SUPER_PASSWORD='una-clave-larga' npm run seed` y `npx wrangler d1 execute presupuesto --remote --file=seed.sql` (crea solo el superadministrador).
+4. Secretos: `npx wrangler secret put SESSION_SECRET` (texto aleatorio de 32+ caracteres) y, si lo usas, `CRON_SECRET`.
+5. En `wrangler.jsonc`: `BASE_DOMAIN="tudominio.com"`, `ENVIRONMENT="production"` y las dos `routes` (`tudominio.com/*` y `*.tudominio.com/*`). El dominio debe estar en Cloudflare, con un registro DNS `*` (proxied) para los subdominios.
+6. `npm run deploy`. Crea los negocios desde `/super`.
 
-Pruebas automáticas: `npm test` (20 pruebas de API).
+## Límites a tener en cuenta
 
-## Variables de entorno (`.env`, ver `.env.example`)
+- **D1 sin transacciones interactivas.** El código correlativo del presupuesto se calcula y, si dos personas generan a la vez, la restricción UNIQUE lo detecta y se reintenta (hasta 10 veces con espera aleatoria). Probado con 12 simultáneos.
+- **Bloqueo por intentos fallidos y límites de peticiones** viven en la memoria de cada instancia del Worker, así que **no son globales**. Para protección real contra fuerza bruta añade una regla de *Rate Limiting* de Cloudflare sobre `/api/*/login`.
+- **Certificado comodín:** los subdominios de primer nivel (`lab.tudominio.com`) los cubre el certificado universal de Cloudflare.
+- **Plan gratuito de Workers:** 10 ms de CPU por petición. PBKDF2 con 100 000 iteraciones puede superarlo en el login; usa el plan de pago (Workers Paid) o baja `ITER` en `src/auth.js` bajo tu criterio de seguridad.
+- La descarga de CSV y el resto de funciones son las mismas que en la versión Node.
 
-| Variable | Uso |
-|---|---|
-| `PORT`, `HOST` | Dónde escucha el servidor |
-| `BASE_DOMAIN` | Dominio base, p. ej. `tudominio.com` (los negocios son `slug.tudominio.com`) |
-| `SESSION_SECRET` | Texto largo y aleatorio para firmar sesiones (obligatorio en producción) |
-| `TRUST_PROXY` | `true` si hay proxy/balanceador (toma IP y Host reales) |
-| `COOKIE_SECURE` | `true` con HTTPS |
-| `DATABASE_FILE` / `DATABASE_URL` | SQLite (archivo) o PostgreSQL |
-| `BCV_API_URL`, `BCV_STALE_HOURS`, `BCV_DISABLED` | Fuente y comportamiento de la tasa |
-| `CRON_SECRET` | Protege `/api/cron/tasa` |
-| `TZ_OFFSET_MIN` | Zona horaria para estadísticas (Caracas: `-240`) |
-| `SUPER_EMAIL`, `SUPER_PASSWORD` | Superadmin inicial |
+## Pruebas
 
-## Tasa BCV
-
-- Se consulta automáticamente cada hora (por defecto `https://ve.dolarapi.com/v1/dolares/oficial`, campo `promedio`) y se guarda.
-- Si la fuente falla se usa la última tasa conocida con aviso de "desactualizada" (tras 36 h). El superadmin puede fijar una tasa manual y cada negocio puede tener la suya.
-- Para entornos sin proceso permanente, llama a `/api/cron/tasa` con `CRON_SECRET` desde un cron externo.
-- La conversión a Bs. se aplica **solo al total**.
-- La tasa `100` del seed es solo un ejemplo (fuente "ejemplo").
-
-## Reglas del presupuesto
-
-- Cada examen aparece una sola vez (suelto o dentro de un perfil). Un perfil que se solapa con otro se bloquea y se ofrece reemplazar; los exámenes sueltos cubiertos por un perfil se retiran solos. Se valida también en el servidor.
-- Moneda: `12,50 REF`; bolívares `1.234,56 Bs.`
-
-## Privacidad
-
-Los datos del paciente (nombre, cédula, teléfono, médico) **no se guardan** en el servidor: solo van en el documento exportado. Se guarda únicamente lo estadístico: negocio, fecha/hora, código, exámenes, categorías, total REF, tasa, origen y tipo de dispositivo. Las visitas son anónimas.
-
-## Publicar con dominio propio
-
-1. DNS: registro comodín `*.tudominio.com` y `tudominio.com` hacia el servidor.
-2. Certificado TLS comodín (`*.tudominio.com`).
-3. Proxy inverso (Nginx/Caddy) que **conserve el encabezado Host** y apunte al puerto de la app.
-4. Variables: `NODE_ENV=production`, `BASE_DOMAIN`, `SESSION_SECRET`, `TRUST_PROXY=true`, `COOKIE_SECURE=true`, `SUPER_EMAIL`/`SUPER_PASSWORD`.
-5. `npm run seed` (crea solo el superadmin) y `npm start`. Luego crea los negocios desde `/super`.
-
-## Pasar a PostgreSQL
-
-El esquema (`db/schema.sql`) y las consultas son portables. Para usar una base externa:
-
-```bash
-npm install pg
-DATABASE_URL=postgres://usuario:clave@host:5432/base npm start
-```
-
-El adaptador `src/db.pg.js` convierte `?` en `$n`, pero **aún no se ha probado contra un PostgreSQL real**: pruébalo en un entorno de preparación y corre `npm test` apuntando a esa base antes de publicar.
-
-## Estructura
-
-```
-src/        servidor (http, auth, bcv, negocio, dashboard, rutas, db)
-db/         schema.sql
-public/     interfaz (paciente, admin, super) en JS/CSS sin frameworks
-test/       pruebas de API
-```
+`npm test` (26 pruebas). Sin `hono` instalado usa `test/hono-minimo.js`; con `npm install` usa Hono real.

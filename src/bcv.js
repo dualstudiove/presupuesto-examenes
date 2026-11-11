@@ -2,6 +2,7 @@
 // en la base de datos y se usa la última conocida si la consulta falla.
 import { db } from './db.js';
 import { env } from './env.js';
+import { rt } from './runtime.js';
 import { uuid, nowIso, parteFecha } from './util.js';
 
 /** Extrae { valor, fechaValor } de las respuestas JSON más comunes. */
@@ -85,7 +86,7 @@ export async function tasaGlobal() {
 export function refrescarSiHaceFalta(tasa) {
   if (env.bcvDisabled) return;
   const sinVerificar = !tasa || tasa._horas > 6;
-  if (sinVerificar && Date.now() - ultimoIntento > 10 * 60 * 1000) refrescarTasa();
+  if (sinVerificar && Date.now() - ultimoIntento > 10 * 60 * 1000) rt.waitUntil(refrescarTasa());
 }
 
 export async function guardarTasaManualGlobal(valor, fuente = 'manual (superadministrador)') {
@@ -96,8 +97,5 @@ export async function guardarTasaManualGlobal(valor, fuente = 'manual (superadmi
   );
 }
 
-export function iniciarProgramador() {
-  if (env.bcvDisabled) return;
-  setTimeout(() => refrescarTasa(), 3000).unref();
-  setInterval(() => refrescarTasa(), 60 * 60 * 1000).unref(); // cada hora
-}
+/** Se ejecuta con el Cron Trigger de Cloudflare (wrangler.jsonc → triggers.crons): una vez por hora. */
+export const consultaProgramada = () => refrescarTasa();
