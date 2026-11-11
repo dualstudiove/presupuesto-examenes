@@ -229,6 +229,7 @@ table.t th { text-align: left; padding: 10px 12px; font-size: 11px; text-transfo
 table.t td { padding: 10px 12px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
 table.t tbody tr:hover td { background: var(--surface-2); }
 table.t tr:last-child td { border-bottom: 0; }
+table.t th.right { text-align: right; }
 table.t td.acts { white-space: nowrap; text-align: right; }
 table.t td.acts .btn + .btn { margin-left: 4px; }
 table.t tr.off td:first-child { opacity: .55; }
@@ -281,6 +282,9 @@ body.mensaje, body.landing { min-height: 100dvh; display: grid; place-items: cen
 .centro { max-width: 460px; text-align: center; padding: 28px; }
 .centro h1 { margin-bottom: 8px; }
 .centro p { color: var(--ink-2); }
+.centro > img { display: block; margin: 0 auto 12px; }
+/* Plataforma: celda de administradores */
+table.t td.adms { color: var(--ink-2); overflow-wrap: anywhere; }
 
 /* ═══════════ App del paciente ═══════════ */
 .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }

@@ -40,15 +40,15 @@ async function pintar(yo) {
     <div class="tw"><table class="t"><thead><tr><th>Negocio</th><th>Dirección</th><th>Administradores</th><th class="right">Exámenes</th><th class="right">Presupuestos</th><th>Estado</th><th></th></tr></thead><tbody>
     ${lista.negocios.map((n) => `<tr class="${n.activo ? '' : 'off'}"><td><b>${esc(n.nombre)}</b></td>
       <td><a href="${esc(urlNegocio(n.slug))}" target="_blank" rel="noopener">${esc(n.slug)}.${esc(base)}</a></td>
-      <td class="small">${n.admins.map((a) => esc(a.email)).join('<br>') || '<span class="muted">—</span>'}</td>
-      <td class="right">${n.examenes}</td><td class="right">${n.presupuestos}</td>
-      <td><button class="badge ${n.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${n.id}">${n.activo ? 'Activo' : 'Suspendido'}</button></td>
+      <td class="small adms">${n.admins.map((a) => esc(a.email)).join('<br>') || '<span class="muted">—</span>'}</td>
+      <td class="right" data-l="Exámenes:">${n.examenes}</td><td class="right" data-l="Presupuestos:">${n.presupuestos}</td>
+      <td><button class="badge ${n.activo ? 'ok' : 'bad'}" style="cursor:pointer;border:0" data-t="${n.id}">${n.activo ? 'Activo' : 'Suspendido'}</button></td>
       <td class="acts"><button class="btn btn-sm" data-a="${n.id}">Administrador</button></td></tr>`).join('')}
     </tbody></table></div>
 
     <div class="card" style="margin-top:20px;max-width:760px"><h3>Tasa BCV (para todos los negocios)</h3>
       <div class="notice ${t && !t.desactualizada ? 'ok' : 'warn'}">${icon('info')}<div>${t ? `Tasa actual: <b>${fmtTasa(t.valor)} Bs. por REF</b> · vigente el ${fmtFecha(t.fecha_valor)} · fuente: ${esc(t.fuente)}<br>Última verificación: ${hora(t.verificado_en)}${t.desactualizada ? ' · <b>desactualizada</b>' : ''}` : 'Aún no hay ninguna tasa guardada.'}</div></div>
-      <p class="muted small" style="margin-top:10px">${tasa.desactivada ? 'La consulta automática está desactivada (BCV_DISABLED).' : `Se consulta automáticamente cada hora a: ${esc(tasa.url)}`}${tasa.consulta.ultimoError ? `<br><b style="color:var(--bad)">Último error: ${esc(tasa.consulta.ultimoError)}</b>` : ''}</p>
+      <p class="muted small" style="margin-top:10px">${tasa.desactivada ? 'La consulta automática está desactivada (BCV_DISABLED).' : `Se consulta automáticamente cada hora a: ${esc(tasa.url)}`}${tasa.consulta.ultimoError ? `<br><b style="color:var(--danger)">Último error: ${esc(tasa.consulta.ultimoError)}</b>` : ''}</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-soft" id="act">Consultar ahora</button>
         <div class="input-unit" style="width:200px"><input id="tm" type="text" inputmode="decimal" placeholder="Tasa manual" aria-label="Tasa manual"><span>Bs.</span></div><button class="btn" id="gm">Guardar tasa manual</button></div>
       <p class="muted xs" style="margin-top:8px">La tasa manual sirve de respaldo si la fuente automática falla; la próxima consulta exitosa la reemplaza.</p></div>
