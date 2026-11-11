@@ -5,7 +5,7 @@
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"], // Buffer y node:crypto (firma HMAC de las sesiones)
 
-  // Páginas e imágenes. run_worker_first: el Worker decide el negocio por subdominio ANTES de servir cualquier página.
+  // Páginas e imágenes. run_worker_first: el Worker decide el negocio por la ruta (/<negocio>) ANTES de servir cualquier página.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -40,10 +40,7 @@
   // Tasa BCV: una consulta por hora.
   "triggers": { "crons": ["0 * * * *"] }
 
-  // Producción: dominio propio con subdominios por negocio (la zona debe estar en Cloudflare):
-  // "routes": [
-  //   { "pattern": "tudominio.com/*",   "zone_name": "tudominio.com" },
-  //   { "pattern": "*.tudominio.com/*", "zone_name": "tudominio.com" }
-  // ]
-  // y en el DNS de la zona un registro  *  (proxied, "naranja")  para los subdominios.
+  // Cada negocio vive en una ruta (/<negocio>), así que funciona en *.workers.dev sin configurar nada más.
+  // Con dominio propio (la zona debe estar en Cloudflare), basta una ruta:
+  // "routes": [{ "pattern": "tudominio.com/*", "zone_name": "tudominio.com" }]
 }

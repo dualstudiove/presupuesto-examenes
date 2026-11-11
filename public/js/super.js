@@ -1,9 +1,9 @@
-// Administración general de la plataforma: negocios (subdominios), sus administradores y la tasa BCV.
+// Administración general de la plataforma: negocios (cada uno en dominio/<negocio>), sus administradores y la tasa BCV.
 import { $, $$, esc, api, icon, toast, modal, conBoton, fmtFecha, fmtTasa } from './common.js';
 
 const root = $('#root');
-let base = 'localhost';
-const urlNegocio = (slug) => `${location.protocol}//${slug}.${base}${location.port ? `:${location.port}` : ''}`;
+const urlNegocio = (slug) => `${location.origin}/${slug}`;
+const dirNegocio = (slug) => `${location.host}/${slug}`;
 const hora = (iso) => { try { return new Date(iso).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' }); } catch { return iso; } };
 
 async function boot() {
@@ -13,7 +13,6 @@ async function boot() {
     root.innerHTML = `<div class="login"><div class="card"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}</p></div></div>`;
     return;
   }
-  base = yo.base_domain;
   await pintar(yo);
 }
 
@@ -39,7 +38,7 @@ async function pintar(yo) {
     <div class="page-head"><h1>Negocios <span class="muted" style="font-size:1rem;font-weight:500">(${lista.negocios.length})</span></h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nuevo negocio</button></div>
     <div class="tw"><table class="t"><thead><tr><th>Negocio</th><th>Dirección</th><th>Administradores</th><th class="right">Exámenes</th><th class="right">Presupuestos</th><th>Estado</th><th></th></tr></thead><tbody>
     ${lista.negocios.map((n) => `<tr class="${n.activo ? '' : 'off'}"><td><b>${esc(n.nombre)}</b></td>
-      <td><a href="${esc(urlNegocio(n.slug))}" target="_blank" rel="noopener">${esc(n.slug)}.${esc(base)}</a></td>
+      <td><a href="${esc(urlNegocio(n.slug))}" target="_blank" rel="noopener">${esc(dirNegocio(n.slug))}</a></td>
       <td class="small adms">${n.admins.map((a) => esc(a.email)).join('<br>') || '<span class="muted">—</span>'}</td>
       <td class="right" data-l="Exámenes:">${n.examenes}</td><td class="right" data-l="Presupuestos:">${n.presupuestos}</td>
       <td><button class="badge ${n.activo ? 'ok' : 'bad'}" style="cursor:pointer;border:0" data-t="${n.id}">${n.activo ? 'Activo' : 'Suspendido'}</button></td>
@@ -82,7 +81,7 @@ function formNegocio() {
   const m = modal({
     titulo: 'Nuevo negocio',
     html: `<div class="field"><label for="n">Nombre del negocio</label><input id="n" type="text" maxlength="80" placeholder="Laboratorio Central"></div>
-      <div class="field"><label for="s">Subdominio</label><div class="input-unit"><input id="s" type="text" maxlength="30" placeholder="labcentral" style="padding-right:150px;text-transform:lowercase"><span style="font-weight:500">.${esc(base)}</span></div><span class="hint">Solo minúsculas, números y guiones. No se puede repetir.</span></div>
+      <div class="field"><label for="s">Dirección</label><input id="s" type="text" maxlength="30" placeholder="labcentral" style="text-transform:lowercase"><span class="hint">Quedará como ${esc(location.host)}/labcentral. Solo minúsculas, números y guiones; no se puede repetir.</span></div>
       <div class="field"><label for="e">Correo del administrador</label><input id="e" type="email" autocomplete="off"></div>
       <div class="field"><label for="p">Contraseña inicial</label><input id="p" type="text" autocomplete="off" placeholder="Mínimo 8 caracteres"><span class="hint">Entrégasela al administrador; podrá cambiarla desde su panel.</span></div>`,
     acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, {
@@ -90,7 +89,7 @@ function formNegocio() {
       onClick: async (cerrar, btn) => {
         await conBoton(btn, async () => {
           const r = await api('/api/super/negocios', { method: 'POST', body: { nombre: $('#n', m.el).value, slug: $('#s', m.el).value.trim().toLowerCase(), admin_email: $('#e', m.el).value, admin_password: $('#p', m.el).value } });
-          cerrar(); toast(`Negocio creado: ${r.slug}.${base}`, 'ok'); boot();
+          cerrar(); toast(`Negocio creado: ${dirNegocio(r.slug)}`, 'ok'); boot();
         });
       },
     }],

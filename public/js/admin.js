@@ -1,6 +1,6 @@
 // Panel de administración de un negocio: dashboard, catálogo, precios y configuración.
 import {
-  $, $$, esc, api, ref, fmtFecha, fmtNum, norm, icon, toast, modal, confirmar, conBoton, aplicarColor, diaLocal,
+  $, $$, esc, api, NEGOCIO, ref, fmtFecha, fmtNum, norm, icon, toast, modal, confirmar, conBoton, aplicarColor, diaLocal,
   parsePrecio, centAInput, imagenAJpeg, fmtTasa,
 } from './common.js';
 import { graficoDias, barras, calor, semana, reparto } from './charts.js';
@@ -54,7 +54,7 @@ function armarMarco() {
   root.innerHTML = `<header class="adm-top"><div class="in">
       <div class="brand" style="flex:none">${A.pub.negocio.logo ? `<img src="${esc(A.pub.negocio.logo)}" alt="">` : `<span class="mark">${icon('flask')}</span>`}<div><strong>${esc(A.pub.negocio.nombre)}</strong><small>Administración</small></div></div>
       <nav class="adm-nav" aria-label="Secciones">${LINKS.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav>
-      <a class="btn btn-sm" href="/" target="_blank" rel="noopener">Ver aplicación</a>
+      <a class="btn btn-sm" href="${esc(NEGOCIO)}" target="_blank" rel="noopener">Ver aplicación</a>
       <button class="btn btn-sm" id="salir">${icon('out')} Salir</button>
     </div></header><main class="page" id="page"></main>`;
   $('#salir').addEventListener('click', async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); location.hash = '#/'; location.reload(); });
@@ -90,7 +90,7 @@ async function pPanel(page) {
   const { desde, hasta } = rangoActual();
   const d = await api(`/api/admin/dashboard?desde=${desde}&hasta=${hasta}`);
   const q = `desde=${desde}&hasta=${hasta}`;
-  const csv = (tipo) => `<a class="btn btn-sm" href="/api/admin/dashboard/csv?tipo=${tipo}&${q}" download>${icon('download')} CSV</a>`;
+  const csv = (tipo) => `<a class="btn btn-sm" href="${esc(NEGOCIO)}/api/admin/dashboard/csv?tipo=${tipo}&${q}" download>${icon('download')} CSV</a>`;
   const r = d.resumen;
   const visM = d.dispositivos.find((x) => x.dispositivo === 'movil'); const visE = d.dispositivos.find((x) => x.dispositivo === 'escritorio');
   page.innerHTML = `
@@ -368,7 +368,7 @@ async function pConfig(page) {
       <div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="on" maxlength="80" placeholder="Nueva opción (ej.: Volante, TikTok…)" aria-label="Nueva opción"><button class="btn btn-soft" id="oa" style="flex:none">${icon('plus')} Agregar</button></div></div>
 
     <div class="card" style="max-width:760px"><h3>Dirección de la aplicación</h3>
-      <p class="small">Comparte este enlace con tus pacientes: <b>${esc(location.origin)}</b></p><p class="muted xs">Subdominio del negocio: ${esc(slug)}</p></div>
+      <p class="small">Comparte este enlace con tus pacientes: <b>${esc(`${location.origin}/${slug}`)}</b></p><p class="muted xs">Panel de administración: ${esc(`${location.origin}/${slug}/admin`)}</p></div>
 
     <div class="card" style="max-width:760px"><h3>Seguridad</h3>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>

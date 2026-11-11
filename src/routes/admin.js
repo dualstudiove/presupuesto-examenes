@@ -13,6 +13,8 @@ import {
   esDia, hoy, sumarDias, placeholders,
 } from '../util.js';
 
+const rutaNegocio = (negocio) => `/${negocio.slug}`;
+
 export async function sesionAdmin(ctx) {
   const tok = leerToken(ctx.cookies.sid_admin);
   if (!tok || tok.k !== 'a' || tok.nid !== ctx.negocio.id) throw new HttpError(401, 'Inicia sesión para continuar.');
@@ -44,11 +46,15 @@ export function registrarAdmin(r) {
       throw new HttpError(401, 'Correo o contraseña incorrectos.');
     }
     limpiarFallos(key);
-    ctx.setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: ctx.negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600 }));
+    // La sesión vive solo bajo /<negocio>: cada negocio tiene su propia cookie aunque compartan dominio.
+    // Además se borra una posible cookie antigua con Path=/ (de cuando los negocios iban por subdominio).
+    ctx.setCookies.push(cookie('sid_admin', '', { expire: true }));
+    ctx.setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: ctx.negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600, path: rutaNegocio(ctx.negocio) }));
     return { email: u.email, nombre: u.nombre };
   });
 
   r.add('POST', '/api/admin/logout', { tenant: true }, async (ctx) => {
+    ctx.setCookies.push(cookie('sid_admin', '', { expire: true, path: rutaNegocio(ctx.negocio) }));
     ctx.setCookies.push(cookie('sid_admin', '', { expire: true }));
     return { ok: true };
   });
@@ -61,7 +67,7 @@ export function registrarAdmin(r) {
     if (!(await verifyPassword(String(body.actual || ''), usuario.password_hash))) throw new HttpError(400, 'La contraseña actual no es correcta.');
     const hash = await hashPassword(validarPassword(body.nueva));
     await db.run('UPDATE usuarios_admin SET password_hash = ? WHERE id = ?', [hash, usuario.id]);
-    setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: usuario.id, nid: negocio.id, ph: marcaPassword(hash) }), { maxAge: 12 * 3600 }));
+    setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: usuario.id, nid: negocio.id, ph: marcaPassword(hash) }), { maxAge: 12 * 3600, path: rutaNegocio(negocio) }));
     return { ok: true };
   });
 

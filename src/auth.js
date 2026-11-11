@@ -72,8 +72,8 @@ export function parseCookies(header = '') {
   return out;
 }
 
-export function cookie(name, value, { maxAge, expire } = {}) {
-  const p = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+export function cookie(name, value, { maxAge, expire, path = '/' } = {}) {
+  const p = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, 'HttpOnly', 'SameSite=Lax'];
   if (expire) p.push('Max-Age=0', 'Expires=Thu, 01 Jan 1970 00:00:00 GMT');
   else if (maxAge) p.push(`Max-Age=${maxAge}`);
   if (env.cookieSecure) p.push('Secure');

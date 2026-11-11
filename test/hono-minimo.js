@@ -9,7 +9,7 @@ export class Hono {
   onError(h) { this.oe = h; }
   fetch = async (request, env = {}, executionCtx) => {
     const url = new URL(request.url);
-    const c = { env, req: { raw: request, url: request.url, method: request.method, path: url.pathname, param: () => ({}) }, res: undefined };
+    const c = { env, req: { raw: request, url: request.url, method: request.method, path: url.pathname, param: (k) => (k ? undefined : {}) }, res: undefined };
     Object.defineProperty(c, 'executionCtx', { get() { if (!executionCtx) throw new Error('no ctx'); return executionCtx; } });
     const metodo = request.method === 'HEAD' ? 'GET' : request.method;
     let h = null;
@@ -18,7 +18,7 @@ export class Hono {
       const keys = [];
       const re = new RegExp('^' + r.path.replace(/\*/g, '.*').replace(/:([a-zA-Z_]+)/g, (_, k) => { keys.push(k); return '([^/]+)'; }) + '$');
       const m = re.exec(url.pathname);
-      if (m) { const p = {}; keys.forEach((k, i) => { p[k] = decodeURIComponent(m[i + 1]); }); c.req.param = () => p; h = r.h; break; }
+      if (m) { const p = {}; keys.forEach((k, i) => { p[k] = decodeURIComponent(m[i + 1]); }); c.req.param = (k) => (k ? p[k] : p); h = r.h; break; }
     }
     const final = async () => { c.res = h ? await h(c) : await this.nf(c); };
     const correr = async (i) => {

@@ -9,8 +9,8 @@ let server;
 let port;
 const jars = new Map();
 
-/** Petición HTTP con cabecera Host (subdominio) y cookies por "jar". */
-function pedir({ host, method = 'GET', path = '/', body, jar = 'anon', headers = {} }) {
+/** Petición HTTP con cookies por "jar". */
+function pedir({ host = 'localhost', method = 'GET', path = '/', body, jar = 'anon', headers = {} }) {
   return new Promise((resolve, reject) => {
     const data = body !== undefined ? JSON.stringify(body) : undefined;
     const h = { host, 'x-app': '1', ...headers };
@@ -39,8 +39,10 @@ function pedir({ host, method = 'GET', path = '/', body, jar = 'anon', headers =
   });
 }
 
-const demo = (o) => pedir({ host: 'demo.localhost', ...o });
-const norte = (o) => pedir({ host: 'norte.localhost', ...o });
+// Cada negocio vive bajo su ruta: /demo, /demo/admin, /demo/api/...
+const bajo = (slug) => (o) => pedir({ ...o, path: `/${slug}${o.path === '/' ? '' : o.path}` });
+const demo = bajo('demo');
+const norte = bajo('norte');
 
 before(async () => {
   const bindings = await crearEntorno();
@@ -56,7 +58,7 @@ before(async () => {
 
 after(() => server?.close());
 
-test('el subdominio decide el negocio y se aíslan los datos', async () => {
+test('la ruta decide el negocio y se aíslan los datos', async () => {
   const a = await demo({ path: '/api/publico/catalogo' });
   const b = await norte({ path: '/api/publico/catalogo' });
   assert.equal(a.status, 200);
@@ -65,15 +67,37 @@ test('el subdominio decide el negocio y se aíslan los datos', async () => {
   assert.equal(b.json.examenes.length, 4);
   const idsA = new Set(a.json.examenes.map((e) => e.id));
   assert.ok(b.json.examenes.every((e) => !idsA.has(e.id)), 'ningún examen de un negocio aparece en el otro');
-  const c = await pedir({ host: 'noexiste.localhost', path: '/api/publico/catalogo' });
+  const c = await pedir({ path: '/noexiste/api/publico/catalogo' });
   assert.equal(c.status, 404);
 });
 
-test('la raíz no sirve la API de un negocio y las páginas respetan el dominio', async () => {
-  assert.equal((await pedir({ host: 'localhost', path: '/api/publico/catalogo' })).status, 404);
-  assert.match((await pedir({ host: 'localhost', path: '/' })).texto, /Plataforma/i);
+test('la raíz no sirve la API de un negocio y las páginas respetan la ruta', async () => {
+  assert.equal((await pedir({ path: '/api/publico/catalogo' })).status, 404);
+  assert.match((await pedir({ path: '/' })).texto, /Plataforma/i);
   assert.match((await demo({ path: '/' })).texto, /<div id="app">/);
   assert.equal((await demo({ path: '/super' })).status, 404);
+  assert.match((await demo({ path: '/admin' })).texto, /<div id="root">/);
+  assert.match((await pedir({ path: '/super' })).texto, /<div id="root">/);
+  assert.equal((await pedir({ path: '/noexiste' })).status, 404);
+  assert.equal((await pedir({ path: '/admin' })).status, 404, 'admin sin negocio no existe');
+  const r1 = await pedir({ path: '/demo/' });
+  assert.equal(r1.status, 301);
+  assert.equal(r1.headers.location, '/demo');
+  const r2 = await pedir({ path: '/Demo/admin?x=1' });
+  assert.equal(r2.status, 301);
+  assert.equal(r2.headers.location, '/demo/admin?x=1');
+});
+
+test('la sesión del administrador queda limitada a la ruta de su negocio', async () => {
+  const r = await demo({ method: 'POST', path: '/api/admin/login', body: { email: 'admin@demo.test', password: 'Demo12345' }, jar: 'ruta' });
+  assert.equal(r.status, 200);
+  assert.ok(r.headers['set-cookie'].some((c) => /^sid_admin=[^;]+;.*Path=\/demo;/.test(c)), r.headers['set-cookie'].join(' | '));
+});
+
+test('una dirección reservada no puede ser un negocio', async () => {
+  const { validarSlug } = await import('../src/negocio.js');
+  for (const s of ['css', 'js', 'img', 'api', 'super', 'healthz']) assert.throws(() => validarSlug(s));
+  assert.equal(validarSlug('labcentral'), 'labcentral');
 });
 
 test('config pública: color, vigencia, orígenes y tasa', async () => {
@@ -156,7 +180,7 @@ test('el administrador exige sesión y la sesión es solo de su negocio', async 
 });
 
 test('mutaciones exigen la cabecera x-app (protección CSRF)', async () => {
-  const r = await pedir({ host: 'demo.localhost', method: 'POST', path: '/api/admin/logout', headers: { 'x-app': '0' } });
+  const r = await demo({ method: 'POST', path: '/api/admin/logout', headers: { 'x-app': '0' } });
   assert.equal(r.status, 403);
 });
 
@@ -256,21 +280,21 @@ test('configuración: tasa manual, prefijo y validaciones', async () => {
 });
 
 test('superadministrador: crea negocios, valida subdominio y los desactiva', async () => {
-  assert.equal((await pedir({ host: 'localhost', path: '/api/super/negocios' })).status, 401);
-  assert.equal((await pedir({ host: 'demo.localhost', method: 'POST', path: '/api/super/login', body: { email: 'super@plataforma.test', password: 'Super12345' } })).status, 404);
-  const login = await pedir({ host: 'localhost', method: 'POST', path: '/api/super/login', body: { email: 'super@plataforma.test', password: 'Super12345' }, jar: 'super' });
+  assert.equal((await pedir({ path: '/api/super/negocios' })).status, 401);
+  assert.equal((await demo({ method: 'POST', path: '/api/super/login', body: { email: 'super@plataforma.test', password: 'Super12345' } })).status, 404);
+  const login = await pedir({ method: 'POST', path: '/api/super/login', body: { email: 'super@plataforma.test', password: 'Super12345' }, jar: 'super' });
   assert.equal(login.status, 200);
-  const S = (o) => pedir({ host: 'localhost', jar: 'super', ...o });
+  const S = (o) => pedir({ jar: 'super', ...o });
   assert.equal((await S({ method: 'POST', path: '/api/super/negocios', body: { nombre: 'X', slug: 'admin', admin_email: 'a@b.co', admin_password: 'abcdefgh1' } })).status, 400);
   assert.equal((await S({ method: 'POST', path: '/api/super/negocios', body: { nombre: 'X', slug: 'demo', admin_email: 'a@b.co', admin_password: 'abcdefgh1' } })).status, 409);
   const nuevo = await S({ method: 'POST', path: '/api/super/negocios', body: { nombre: 'Lab Central', slug: 'labcentral', admin_email: 'dueno@labcentral.test', admin_password: 'Central2026!' } });
   assert.equal(nuevo.status, 200, nuevo.texto);
-  const nuevoCat = await pedir({ host: 'labcentral.localhost', path: '/api/publico/catalogo' });
+  const nuevoCat = await pedir({ path: '/labcentral/api/publico/catalogo' });
   assert.equal(nuevoCat.status, 200);
   assert.ok(nuevoCat.json.categorias.length >= 6);
-  assert.equal((await pedir({ host: 'labcentral.localhost', method: 'POST', path: '/api/admin/login', body: { email: 'dueno@labcentral.test', password: 'Central2026!' } })).status, 200);
+  assert.equal((await pedir({ method: 'POST', path: '/labcentral/api/admin/login', body: { email: 'dueno@labcentral.test', password: 'Central2026!' } })).status, 200);
   await S({ method: 'PUT', path: `/api/super/negocios/${nuevo.json.id}`, body: { activo: false } });
-  assert.equal((await pedir({ host: 'labcentral.localhost', path: '/api/publico/catalogo' })).status, 403);
+  assert.equal((await pedir({ path: '/labcentral/api/publico/catalogo' })).status, 403);
   const lista = await S({ path: '/api/super/negocios' });
   assert.equal(lista.json.negocios.length, 3);
 });

@@ -245,7 +245,7 @@ async function main() {
   console.log('  npx wrangler d1 execute presupuesto --remote --file=seed.sql   (producción)');
   console.log(`\nSuperadministrador:  correo: ${r.superadmin.email}   clave: ${r.superadmin.password}`);
   if (r.demo) {
-    console.log('\nNegocios de ejemplo (en desarrollo: http://demo.localhost:8787):');
+    console.log('\nNegocios de ejemplo (en desarrollo: http://localhost:8787/demo y /demo/admin):');
     for (const d of r.demo) console.log(`  ${d.negocio}  admin: ${d.admin} / ${d.password}`);
     console.log('\nOJO: son credenciales de ejemplo. No las uses en producción.');
   }

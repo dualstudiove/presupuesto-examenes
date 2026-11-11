@@ -6,7 +6,14 @@ export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Cada negocio vive bajo su propia ruta: /<negocio> (paciente) y /<negocio>/admin (administración).
+// NEGOCIO es ese prefijo ('/demo'), o '' en las páginas de la plataforma (/ y /super).
+const primerSegmento = decodeURIComponent(location.pathname.split('/')[1] || '');
+export const NEGOCIO = primerSegmento && primerSegmento !== 'super' ? `/${primerSegmento}` : '';
+
 export async function api(path, { method = 'GET', body } = {}) {
+  // La API pública y la del administrador son del negocio: /api/publico/x → /<negocio>/api/publico/x
+  if (/^\/api\/(publico|admin)\//.test(path)) path = NEGOCIO + path;
   const opt = { method, headers: { 'x-app': '1' }, credentials: 'same-origin' };
   if (body !== undefined) {
     opt.headers['content-type'] = 'application/json';

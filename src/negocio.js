@@ -4,7 +4,8 @@ import { hashPassword } from './auth.js';
 import { tasaGlobal } from './bcv.js';
 import { HttpError, uuid, nowIso, parteFecha, hoy, sumarDias, placeholders } from './util.js';
 
-const RESERVADOS = new Set(['www', 'api', 'admin', 'super', 'app', 'mail', 'static', 'assets', 'cdn', 'localhost', 'ftp', 'smtp']);
+// Primeros segmentos de ruta que usa la plataforma: no pueden ser la dirección de un negocio.
+export const RESERVADOS = new Set(['www', 'api', 'admin', 'super', 'app', 'mail', 'static', 'assets', 'cdn', 'localhost', 'ftp', 'smtp', 'css', 'js', 'img', 'healthz', 'favicon.ico', 'robots.txt']);
 export const CATEGORIAS_BASE = ['Hematología', 'Coagulación', 'Química sanguínea', 'Orina', 'Heces', 'Hormonas', 'Inmunología'];
 export const ORIGENES_BASE = ['Instagram', 'Recomendación de un conocido', 'Referido por mi médico', 'Búsqueda en Google', 'Otro'];
 
@@ -23,7 +24,7 @@ export const getConfig = (negocioId) => db.get('SELECT * FROM configuracion_nego
 
 export function validarSlug(slug) {
   if (typeof slug !== 'string' || slug.length > 28 || !(/^[a-z0-9][a-z0-9-]*$/.test(slug)) || RESERVADOS.has(slug)) {
-    throw new HttpError(400, 'El subdominio debe tener entre 2 y 30 letras minúsculas, números o guiones, y no puede ser una palabra reservada.');
+    throw new HttpError(400, 'La dirección del negocio debe tener entre 2 y 30 letras minúsculas, números o guiones, y no puede ser una palabra reservada.');
   }
   return slug;
 }
@@ -35,7 +36,7 @@ export async function crearNegocio({ nombre, slug, adminEmail, adminPassword, co
   const ahora = nowIso();
   const prefijo = (slug.replace(/[^a-z0-9]/g, '').slice(0, 3) || 'PE').toUpperCase();
   await db.tx(async (t) => {
-    if (await t.get('SELECT id FROM negocios WHERE slug = ?', [slug])) throw new HttpError(409, 'Ese subdominio ya está en uso.');
+    if (await t.get('SELECT id FROM negocios WHERE slug = ?', [slug])) throw new HttpError(409, 'Esa dirección ya está en uso.');
     await t.run('INSERT INTO negocios (id, slug, nombre, activo, creado_en) VALUES (?,?,?,1,?)', [id, slug, nombre, ahora]);
     await t.run(
       `INSERT INTO configuracion_negocio (negocio_id, nombre_publico, color_principal, prefijo_codigo, dias_vigencia, precios_actualizados_en)

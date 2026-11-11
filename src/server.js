@@ -1,6 +1,7 @@
 // Aplicación para Cloudflare Workers: Hono + D1.
 //
-//  • Resuelve el negocio por subdominio (Host).
+//  • Resuelve el negocio por el primer segmento de la ruta: dominio/<negocio>, dominio/<negocio>/admin
+//    y dominio/<negocio>/api/...; la plataforma usa /, /super y /api/super/...
 //  • Expone las rutas de src/routes/* (declaradas en un Router neutral) como rutas de Hono.
 //  • Sirve las páginas y los archivos estáticos de /public mediante el binding ASSETS.
 //  • export default { fetch, scheduled }: `scheduled` actualiza la tasa BCV con el Cron Trigger.
@@ -8,10 +9,10 @@ import { Hono } from 'hono';
 import { env, configurarEnv } from './env.js';
 import { bindD1 } from './db.js';
 import { rt } from './runtime.js';
-import { parseCookies, cookie } from './auth.js';
+import { parseCookies } from './auth.js';
 import { Router, Raw } from './http.js';
 import { HttpError } from './util.js';
-import { negocioPorSlug } from './negocio.js';
+import { negocioPorSlug, RESERVADOS } from './negocio.js';
 import { consultaProgramada } from './bcv.js';
 import { registrarPublicas } from './routes/public.js';
 import { registrarAdmin } from './routes/admin.js';
@@ -59,22 +60,12 @@ function conSeguridad(res) {
   return r;
 }
 
-// ───────────── Negocio (tenant) por subdominio ─────────────
-/** En desarrollo también acepta ?negocio=slug (y lo recuerda en una cookie). */
-function tenantDe(headers, url) {
-  const host = String(headers.host || url.hostname || '').split(':')[0].toLowerCase();
-  const base = env.baseDomain;
-  if (host !== base && host !== `www.${base}` && host.endsWith(`.${base}`)) {
-    const slug = host.slice(0, -(base.length + 1));
-    if (slug && !slug.includes('.')) return { slug };
-  }
-  if (env.allowTenantQuery) {
-    const q = url.searchParams.get('negocio');
-    if (q === '-') return { root: true, limpiarDev: true };
-    if (q) return { slug: q.toLowerCase(), viaQuery: true };
-    const c = parseCookies(headers.cookie).negocio_dev;
-    if (c) return { slug: c.toLowerCase() };
-  }
+// ───────────── Negocio (tenant) por ruta: /<negocio>/... ─────────────
+/** El primer segmento de la ruta es el negocio, salvo las rutas propias de la plataforma (/api, /super, /css…). */
+function tenantDe(url) {
+  let seg = '';
+  try { seg = decodeURIComponent(url.pathname.split('/')[1] || '').toLowerCase(); } catch { /* ruta mal codificada */ }
+  if (seg && !RESERVADOS.has(seg)) return { slug: seg };
   return { root: true };
 }
 
@@ -115,7 +106,7 @@ async function atender(c, r) {
   const req = c.req.raw;
   const url = new URL(c.req.url);
   const headers = Object.fromEntries(req.headers);
-  const tenant = tenantDe(headers, url);
+  const tenant = tenantDe(url);
   const o = r.opts;
   const ctx = {
     req: { headers }, url, params: c.req.param(), tenant, ip: clientIp(headers), setCookies: [],
@@ -145,7 +136,8 @@ async function atender(c, r) {
   return respJson(200, out ?? { ok: true }, ctx.setCookies);
 }
 
-for (const r of router.routes) app.on(r.method, r.path, (c) => atender(c, r));
+// Las rutas de un negocio cuelgan de /:negocio (p. ej. /demo/api/publico/config); las de la plataforma, de la raíz.
+for (const r of router.routes) app.on(r.method, r.opts.tenant ? `/:negocio${r.path}` : r.path, (c) => atender(c, r));
 
 // ───────────── Archivos estáticos y páginas (binding ASSETS) ─────────────
 async function asset(c, ruta, { status = 200 } = {}) {
@@ -163,41 +155,40 @@ async function asset(c, ruta, { status = 200 } = {}) {
 for (const dir of ['/css/*', '/js/*', '/img/*']) app.get(dir, (c) => asset(c, new URL(c.req.url).pathname));
 app.get('/favicon.ico', (c) => asset(c, '/img/favicon.svg'));
 
-async function pagina(c, archivo, { soloRaiz = false, soloNegocio = false } = {}) {
-  const url = new URL(c.req.url);
-  const headers = Object.fromEntries(c.req.raw.headers);
-  const tenant = tenantDe(headers, url);
-  const cookies = [];
-  if (tenant.limpiarDev) cookies.push(cookie('negocio_dev', '', { expire: true }));
-  if (tenant.viaQuery) cookies.push(`negocio_dev=${encodeURIComponent(tenant.slug)}; Path=/; SameSite=Lax`);
-
-  if (soloRaiz && !tenant.root) return noEncontrada();
-  if (soloNegocio && tenant.root) return new Response(null, { status: 302, headers: { location: '/' } });
-  if (!tenant.root) {
-    const neg = await negocioPorSlug(tenant.slug);
-    if (!neg) return respHtml(404, paginaMensaje('Negocio no encontrado', 'No existe un negocio con esta dirección. Revisa que el enlace esté bien escrito.'));
-    if (!neg.activo) return respHtml(403, paginaMensaje('Servicio no disponible', 'Este servicio no está disponible por el momento.'));
-  }
-  const res = await asset(c, archivo);
-  for (const ck of cookies) res.headers.append('set-cookie', ck);
-  return res;
+async function pagina(c, archivo) {
+  const tenant = tenantDe(new URL(c.req.url));
+  if (tenant.root) return noEncontrada(); // /api, /css… no son negocios
+  const neg = await negocioPorSlug(tenant.slug);
+  if (!neg) return respHtml(404, paginaMensaje('Negocio no encontrado', 'No existe un negocio con esta dirección. Revisa que el enlace esté bien escrito.'));
+  if (!neg.activo) return respHtml(403, paginaMensaje('Servicio no disponible', 'Este servicio no está disponible por el momento.'));
+  return asset(c, archivo);
 }
 
-app.get('/', async (c) => {
-  const tenant = tenantDe(Object.fromEntries(c.req.raw.headers), new URL(c.req.url));
-  return pagina(c, tenant.root ? '/landing.html' : '/index.html');
-});
-app.get('/admin', (c) => pagina(c, '/admin.html', { soloNegocio: true }));
-app.get('/super', (c) => pagina(c, '/super.html', { soloRaiz: true }));
+/** /Demo/ → /demo (la dirección canónica va en minúsculas y sin barra final). */
+function canonica(c, resto = '') {
+  const url = new URL(c.req.url);
+  const slug = String(c.req.param('negocio') || '').toLowerCase();
+  const destino = `/${slug}${resto}`;
+  if (url.pathname === destino) return null;
+  return new Response(null, { status: 301, headers: { location: destino + url.search } });
+}
+
+app.get('/', (c) => asset(c, '/landing.html'));
+app.get('/super', (c) => asset(c, '/super.html'));
+app.get('/:negocio', (c) => canonica(c) || pagina(c, '/index.html'));
+app.get('/:negocio/', (c) => canonica(c) || pagina(c, '/index.html'));
+app.get('/:negocio/admin', (c) => canonica(c, '/admin') || pagina(c, '/admin.html'));
+app.get('/:negocio/admin/', (c) => canonica(c, '/admin') || pagina(c, '/admin.html'));
 
 // ───────────── Errores ─────────────
-app.notFound((c) => (new URL(c.req.url).pathname.startsWith('/api/') ? respJson(404, { error: 'No encontrado.' }) : noEncontrada()));
+const esApi = (c) => /^\/(?:[^/]+\/)?api\//.test(new URL(c.req.url).pathname);
+app.notFound((c) => (esApi(c) ? respJson(404, { error: 'No encontrado.' }) : noEncontrada()));
 
 app.onError((e, c) => {
   const status = e instanceof HttpError ? e.status : 500;
   if (!(e instanceof HttpError)) console.error('[error]', c.req.method, c.req.url, e);
   const mensaje = e instanceof HttpError ? e.message : 'Ocurrió un error inesperado. Intenta de nuevo.';
-  if (new URL(c.req.url).pathname.startsWith('/api/')) return respJson(status, { error: mensaje });
+  if (esApi(c)) return respJson(status, { error: mensaje });
   return respHtml(status, paginaMensaje('Ups', mensaje));
 });
 
