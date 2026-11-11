@@ -147,7 +147,7 @@ async function pExamenes(page) {
     <div class="tw"><table class="t"><thead><tr><th>Examen</th><th>Categoría</th><th class="right">Precio</th><th>Estado</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
   const pintar = () => {
     const l = lista();
-    $('#tb').innerHTML = l.length ? l.map((e) => `<tr class="${e.activo ? '' : 'off'}"><td><b>${esc(e.nombre)}</b>${e.indicaciones ? `<div class="muted xs">${esc(e.indicaciones)}</div>` : ''}</td><td>${esc(e.categoria)}</td><td class="right nowrap"><b>${ref(e.precio_cent)}</b></td>
+    $('#tb').innerHTML = l.length ? l.map((e) => `<tr class="${e.activo ? '' : 'off'}"><td><b>${esc(e.nombre)}</b>${e.indicaciones ? `<div class="muted xs">${esc(e.indicaciones)}</div>` : ''}</td><td><span class="tag cat-${(Math.max(0, c.categorias.findIndex((k) => k.id === e.categoria_id)) % 5) + 1}">${esc(e.categoria)}</span></td><td class="right nowrap"><b>${ref(e.precio_cent)}</b></td>
       <td><button class="badge ${e.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${e.id}" title="Cambiar estado">${e.activo ? 'Activo' : 'Inactivo'}</button></td>
       <td class="acts"><button class="btn btn-sm" data-e="${e.id}">${icon('edit')} Editar</button> <button class="btn btn-sm btn-danger btn-icon" data-d="${e.id}" aria-label="Eliminar ${esc(e.nombre)}">${icon('trash')}</button></td></tr>`).join('')
       : `<tr><td colspan="5" class="empty">No hay exámenes con ese criterio.</td></tr>`;
@@ -206,7 +206,7 @@ async function pPerfiles(page) {
     <div class="page-head"><h1>Perfiles <span class="muted" style="font-size:1rem;font-weight:500">(${c.perfiles.length})</span></h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nuevo perfil</button></div>
     <p class="muted small">Un perfil es un grupo de exámenes con un precio propio (no tiene que ser la suma de sus partes).</p>
     <div class="tw"><table class="t"><thead><tr><th>Perfil</th><th>Exámenes</th><th class="right">Precio del perfil</th><th class="right">Suma por separado</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${c.perfiles.length ? c.perfiles.map((p) => `<tr class="${p.activo ? '' : 'off'}"><td><b>${esc(p.nombre)}</b></td><td>${p.examen_ids.length}</td><td class="right nowrap"><b>${ref(p.precio_cent)}</b></td><td class="right nowrap muted">${ref(suma(p))}</td>
+    ${c.perfiles.length ? c.perfiles.map((p) => `<tr class="${p.activo ? '' : 'off'}"><td><b>${esc(p.nombre)}</b></td><td data-l="Exámenes:">${p.examen_ids.length}</td><td class="right nowrap"><b>${ref(p.precio_cent)}</b></td><td class="right nowrap muted" data-l="Por separado:">${ref(suma(p))}</td>
       <td><button class="badge ${p.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${p.id}">${p.activo ? 'Activo' : 'Inactivo'}</button></td>
       <td class="acts"><button class="btn btn-sm" data-e="${p.id}">${icon('edit')} Editar</button> <button class="btn btn-sm btn-danger btn-icon" data-d="${p.id}" aria-label="Eliminar ${esc(p.nombre)}">${icon('trash')}</button></td></tr>`).join('') : '<tr><td colspan="6" class="empty">Aún no hay perfiles.</td></tr>'}
     </tbody></table></div>`;
@@ -269,7 +269,7 @@ async function pCategorias(page) {
   page.innerHTML = `
     <div class="page-head"><h1>Categorías</h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nueva categoría</button></div>
     <div class="tw"><table class="t"><thead><tr><th>Categoría</th><th>Orden</th><th>Exámenes</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><b>${esc(k.nombre)}</b></td><td>${k.orden}</td><td>${k.examenes}</td><td><span class="badge ${k.activo ? 'ok' : 'off'}">${k.activo ? 'Activa' : 'Oculta'}</span></td>
+    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><span class="tag cat-${(c.categorias.indexOf(k) % 5) + 1}">${esc(k.nombre)}</span></td><td data-l="Orden:">${k.orden}</td><td data-l="Exámenes:">${k.examenes}</td><td><span class="badge ${k.activo ? 'ok' : 'off'}">${k.activo ? 'Activa' : 'Oculta'}</span></td>
       <td class="acts"><button class="btn btn-sm" data-e="${k.id}">${icon('edit')} Editar</button> <button class="btn btn-sm btn-danger btn-icon" data-d="${k.id}" aria-label="Eliminar ${esc(k.nombre)}">${icon('trash')}</button></td></tr>`).join('')}
     </tbody></table></div>
     <p class="muted small" style="margin-top:10px">Si ocultas una categoría, sus exámenes dejan de mostrarse a los pacientes.</p>`;
