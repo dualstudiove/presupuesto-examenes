@@ -40,7 +40,7 @@ function respHtml(status, html, cookies = []) {
 }
 
 const paginaMensaje = (titulo, texto) =>
-  `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><link rel="stylesheet" href="/css/app.css"></head><body class="mensaje"><main class="card centro"><h1>${titulo}</h1><p>${texto}</p></main></body></html>`;
+  `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"><link rel="stylesheet" href="/css/app.css"></head><body class="mensaje"><main class="card centro"><h1>${titulo}</h1><p>${texto}</p></main></body></html>`;
 
 const noEncontrada = () => respHtml(404, paginaMensaje('No encontrado', 'La página que buscas no existe.'));
 
@@ -53,7 +53,7 @@ function conSeguridad(res) {
   r.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   r.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
   );
   if (env.cookieSecure) r.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   return r;
