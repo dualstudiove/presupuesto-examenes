@@ -131,7 +131,7 @@ function cardExamen(e) {
   const cat = S.cat.categorias.find((c) => c.id === e.categoria_id);
   return `<article class="item ${sel ? 'sel' : ''} ${cub ? 'dis' : ''}">
     <div><h3>${esc(e.nombre)}</h3>
-      <div class="meta">${cat ? `<span class="badge">${esc(cat.nombre)}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
+      <div class="meta">${cat ? `<span class="badge cat-${(S.cat.categorias.indexOf(cat) % 5) + 1}">${esc(cat.nombre)}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
       ${e.descripcion ? `<p class="desc">${esc(e.descripcion)}</p>` : ''}</div>
     <div class="side"><div class="price">${ref(e.precio_cent)}</div>
       ${cub ? `<span class="badge ok" style="white-space:normal;text-align:center;max-width:130px">Incluido en ${esc(cub.nombre)}</span>`
