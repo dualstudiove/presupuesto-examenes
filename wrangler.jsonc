@@ -1,6 +1,6 @@
 {
   // Cloudflare Workers + D1. Documentación: https://developers.cloudflare.com/workers/wrangler/configuration/
-  "name": "presupuesto-examenes",
+  "name": "lab", // da la dirección lab.<subdominio-de-la-cuenta>.workers.dev
   "main": "src/server.js",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"], // Buffer y node:crypto (firma HMAC de las sesiones)
@@ -29,7 +29,7 @@
   "vars": {
     // "BASE_DOMAIN": "localhost",     // en producción: "tudominio.com"
     // "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure, sin ?negocio=)
-    "BASE_DOMAIN": "presupuesto-examenes.dualstudio-ve-6e8.workers.dev",
+    "BASE_DOMAIN": "lab.dualstudio-ve-6e8.workers.dev",
     "ENVIRONMENT": "production",
     "TZ_OFFSET_MIN": "-240",
     "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",

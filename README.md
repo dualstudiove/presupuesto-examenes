@@ -43,6 +43,8 @@ Credenciales de ejemplo: `admin@demo.test` / `Demo12345`, `admin@norte.test` / `
 5. En `wrangler.jsonc`: `ENVIRONMENT="production"`. Funciona tal cual en la dirección `*.workers.dev`; si usas un dominio propio, añade una sola `route` (`tudominio.com/*`). No hace falta DNS comodín: cada negocio vive en una ruta.
 6. `npm run deploy`. Crea los negocios desde `/super`.
 
+El Worker se llama `lab` (en `wrangler.jsonc`), así que la dirección es `lab.<subdominio-de-tu-cuenta>.workers.dev/<negocio>`. El subdominio de la cuenta se cambia en Cloudflare → Workers y Pages → *Subdominio* (panel lateral). Si cambias el nombre del Worker, Cloudflare crea uno nuevo: vuelve a cargar los secretos (`wrangler secret put …`) y borra el anterior.
+
 ## Límites a tener en cuenta
 
 - **D1 sin transacciones interactivas.** El código correlativo del presupuesto se calcula y, si dos personas generan a la vez, la restricción UNIQUE lo detecta y se reintenta (hasta 10 veces con espera aleatoria). Probado con 12 simultáneos.
