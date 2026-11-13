@@ -413,15 +413,39 @@ function alternarPerfil(id) {
   const conflictos = S.pf.map((q) => pfMap.get(q)).map((pq) => ({ perfil: pq, comunes: pq.examenes.filter((m) => p.ids.has(m.id)) })).filter((c) => c.comunes.length);
   if (!conflictos.length) { agregarPerfil(p); return; }
   const varios = conflictos.length > 1;
+  // Exámenes del perfil nuevo que el paciente todavía no tiene (ni en otro perfil ni sueltos):
+  // se pueden agregar como exámenes sueltos para no perder ninguno.
+  const pendientes = p.examenes.filter((m) => !cubiertoPor(m.id) && !S.ex.includes(m.id));
+  const faltan = pendientes.map((m) => exMap.get(m.id)).filter(Boolean);
+  const sinSuelto = pendientes.filter((m) => !exMap.has(m.id)); // no se ofrecen por separado
+  const sumaFaltan = faltan.reduce((t, e) => t + e.precio_cent, 0);
+  const opciones = [{ texto: 'Cancelar', onClick: (c) => c() }];
+  if (faltan.length) {
+    opciones.push({ texto: `Reemplazar por «${p.nombre}»`, onClick: (c) => { reemplazar(); c(); } });
+    opciones.push({
+      texto: faltan.length === 1 ? 'Agregar el que falta' : `Agregar los ${faltan.length} que faltan`, clase: 'btn-primary',
+      onClick: (c) => {
+        for (const e of faltan) if (!S.ex.includes(e.id)) S.ex.push(e.id);
+        toast(faltan.length === 1 ? `Agregamos «${faltan[0].nombre}» como examen suelto.` : `Agregamos ${faltan.length} exámenes sueltos: ${faltan.map((e) => e.nombre).join(', ')}.`, 'ok');
+        cambio(); c();
+      },
+    });
+  } else {
+    opciones.push({ texto: `Reemplazar por «${p.nombre}»`, clase: 'btn-primary', onClick: (c) => { reemplazar(); c(); } });
+  }
+  function reemplazar() { const fuera = new Set(conflictos.map((x) => x.perfil.id)); S.pf = S.pf.filter((x) => !fuera.has(x)); agregarPerfil(p); }
   modal({
     titulo: 'Este perfil repite exámenes',
     html: `<p>«${esc(p.nombre)}» incluye exámenes que ya están en ${varios ? 'otros perfiles' : 'otro perfil'} de tu presupuesto. Un examen no puede repetirse.</p>
       ${conflictos.map((c) => `<div class="notice warn" style="margin-bottom:8px">${icon('warn')}<div><b>${esc(c.perfil.nombre)}</b> ya incluye: ${c.comunes.map((m) => esc(m.nombre)).join(', ')}.</div></div>`).join('')}
-      <p class="muted small">Si lo prefieres, puedes reemplazar ${varios ? 'esos perfiles' : 'ese perfil'} por «${esc(p.nombre)}».</p>`,
-    acciones: [
-      { texto: 'Cancelar', onClick: (c) => c() },
-      { texto: 'Reemplazar', clase: 'btn-primary', onClick: (c) => { const fuera = new Set(conflictos.map((x) => x.perfil.id)); S.pf = S.pf.filter((x) => !fuera.has(x)); agregarPerfil(p); c(); } },
-    ],
+      ${faltan.length
+        ? `<div class="faltan"><p><b>Para no perder ninguno</b>, puedes agregar solo ${faltan.length === 1 ? 'el que te falta' : `los ${faltan.length} que te faltan`} como ${faltan.length === 1 ? 'examen suelto' : 'exámenes sueltos'}:</p>
+            <ul>${faltan.map((e) => `<li><span>${esc(e.nombre)}</span><span>${ref(e.precio_cent)}</span></li>`).join('')}</ul>
+            <p class="suma"><span>${faltan.length === 1 ? 'Precio' : 'Suman'}</span><b>${ref(sumaFaltan)}</b></p></div>`
+        : `<p class="muted small">Ya tienes todos los exámenes de «${esc(p.nombre)}» en tu presupuesto.</p>`}
+      ${sinSuelto.length ? `<p class="muted small">No se ofrece${sinSuelto.length === 1 ? '' : 'n'} por separado: ${sinSuelto.map((m) => esc(m.nombre)).join(', ')}.</p>` : ''}
+      <p class="muted small">O, si lo prefieres, reemplaza ${varios ? 'esos perfiles' : 'ese perfil'} por «${esc(p.nombre)}».</p>`,
+    acciones: opciones,
   });
 }
 

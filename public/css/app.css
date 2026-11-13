@@ -382,6 +382,16 @@ body:has(.overlay) #toasts { top: calc(12px + env(safe-area-inset-top)) !importa
 .notice.falta { margin-bottom: 12px; }
 .limite { display: flex; gap: 6px; align-items: center; margin: 2px 0 6px; font-size: 13px; color: var(--ink-2); }
 .limite svg.i { color: var(--accent); }
+/* Perfil que repite exámenes: los que faltan, como exámenes sueltos */
+.faltan { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 12px 0; background: var(--surface-2); }
+.faltan p { margin: 0 0 6px; }
+.faltan ul { list-style: none; margin: 0; padding: 0; }
+.faltan li, .faltan .suma { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; }
+.faltan li + li { border-top: 1px solid var(--line-2); }
+.faltan .suma { border-top: 1px solid var(--line); margin: 6px 0 0; padding-top: 8px; }
+.faltan .suma b { font-family: var(--font-display); font-size: 15px; }
+/* Con tres botones, en el móvil van uno debajo de otro (el principal arriba) */
+@media (max-width: 560px) { .modal .acts:has(.btn:nth-child(3)) { flex-direction: column-reverse; } .modal .acts:has(.btn:nth-child(3)) .btn { width: 100%; } }
 /* Paso intermedio: ¿cómo se enteró? */
 .origenes { display: grid; gap: 8px; margin: 4px 0 8px; }
 .origenes .btn { justify-content: flex-start; font-weight: 500; }
