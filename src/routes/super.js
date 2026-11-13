@@ -43,7 +43,7 @@ export function registrarSuper(r) {
     return { ok: true };
   });
 
-  r.add('GET', '/api/super/me', S, async ({ usuario }) => ({ email: usuario.email, base_domain: env.baseDomain }));
+  r.add('GET', '/api/super/me', S, async ({ usuario }) => ({ email: usuario.email, base_path: env.basePath }));
 
   r.add('GET', '/api/super/negocios', S, async () => {
     const negocios = await db.all(
@@ -54,7 +54,7 @@ export function registrarSuper(r) {
     );
     const admins = await db.all('SELECT negocio_id, email, activo FROM usuarios_admin ORDER BY email');
     return {
-      base_domain: env.baseDomain,
+      base_path: env.basePath,
       negocios: negocios.map((n) => ({
         ...n, presupuestos: Number(n.presupuestos), examenes: Number(n.examenes),
         admins: admins.filter((a) => a.negocio_id === n.id).map((a) => ({ email: a.email, activo: !!a.activo })),

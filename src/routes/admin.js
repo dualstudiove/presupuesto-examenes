@@ -1,5 +1,6 @@
 // Panel de administración de UN negocio. Todas las consultas filtran por negocio_id.
 import { db } from '../db.js';
+import { env } from '../env.js';
 import {
   verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
   bloqueoRestante, registrarFallo, limpiarFallos, limite,
@@ -13,7 +14,8 @@ import {
   esDia, hoy, sumarDias, placeholders,
 } from '../util.js';
 
-const rutaNegocio = (negocio) => `/${negocio.slug}`;
+// La sesión del administrador vive solo bajo <base>/<negocio> (p. ej. /cotizalo/demo).
+const rutaNegocio = (negocio) => `${env.basePath}/${negocio.slug}`;
 
 export async function sesionAdmin(ctx) {
   const tok = leerToken(ctx.cookies.sid_admin);
@@ -47,15 +49,12 @@ export function registrarAdmin(r) {
     }
     limpiarFallos(key);
     // La sesión vive solo bajo /<negocio>: cada negocio tiene su propia cookie aunque compartan dominio.
-    // Además se borra una posible cookie antigua con Path=/ (de cuando los negocios iban por subdominio).
-    ctx.setCookies.push(cookie('sid_admin', '', { expire: true }));
     ctx.setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: ctx.negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600, path: rutaNegocio(ctx.negocio) }));
     return { email: u.email, nombre: u.nombre };
   });
 
   r.add('POST', '/api/admin/logout', { tenant: true }, async (ctx) => {
     ctx.setCookies.push(cookie('sid_admin', '', { expire: true, path: rutaNegocio(ctx.negocio) }));
-    ctx.setCookies.push(cookie('sid_admin', '', { expire: true }));
     return { ok: true };
   });
 

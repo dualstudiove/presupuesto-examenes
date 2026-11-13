@@ -72,7 +72,8 @@ export function parseCookies(header = '') {
   return out;
 }
 
-export function cookie(name, value, { maxAge, expire, path = '/' } = {}) {
+// Por defecto la cookie vale solo dentro de la ruta de la app (BASE_PATH), para no mezclarse con otras apps del mismo dominio.
+export function cookie(name, value, { maxAge, expire, path = env.basePath || '/' } = {}) {
   const p = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, 'HttpOnly', 'SameSite=Lax'];
   if (expire) p.push('Max-Age=0', 'Expires=Thu, 01 Jan 1970 00:00:00 GMT');
   else if (maxAge) p.push(`Max-Age=${maxAge}`);

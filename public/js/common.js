@@ -6,14 +6,23 @@ export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// Cada negocio vive bajo su propia ruta: /<negocio> (paciente) y /<negocio>/admin (administración).
-// NEGOCIO es ese prefijo ('/demo'), o '' en las páginas de la plataforma (/ y /super).
-const primerSegmento = decodeURIComponent(location.pathname.split('/')[1] || '');
-export const NEGOCIO = primerSegmento && primerSegmento !== 'super' ? `/${primerSegmento}` : '';
+// ── Direcciones ──
+// BASE: ruta donde está montada la app ('/cotizalo', o '' si está en la raíz de su dominio). No se escribe a mano:
+// se deduce de dónde se sirve este archivo (<base>/js/common.js), así que sigue la variable BASE_PATH del servidor.
+export const BASE = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+// Cada negocio vive bajo <base>/<negocio> (paciente) y <base>/<negocio>/admin (administración).
+// NEGOCIO es esa ruta completa ('/cotizalo/demo'), o '' en las páginas de la plataforma (<base> y <base>/super).
+const resto = location.pathname.startsWith(BASE) ? location.pathname.slice(BASE.length) : location.pathname;
+const primerSegmento = decodeURIComponent(resto.split('/')[1] || '');
+export const NEGOCIO = primerSegmento && primerSegmento !== 'super' ? `${BASE}/${primerSegmento}` : '';
+/** Dirección completa para compartir: urlCompleta('/demo') → https://dualstudio.app/cotizalo/demo */
+export const urlCompleta = (ruta = '') => `${location.origin}${BASE}${ruta}`;
 
 export async function api(path, { method = 'GET', body } = {}) {
-  // La API pública y la del administrador son del negocio: /api/publico/x → /<negocio>/api/publico/x
+  // La API pública y la del administrador son del negocio: /api/publico/x → <base>/<negocio>/api/publico/x;
+  // la de la plataforma solo lleva la base: /api/super/x → <base>/api/super/x
   if (/^\/api\/(publico|admin)\//.test(path)) path = NEGOCIO + path;
+  else if (path.startsWith('/')) path = BASE + path;
   const opt = { method, headers: { 'x-app': '1' }, credentials: 'same-origin' };
   if (body !== undefined) {
     opt.headers['content-type'] = 'application/json';

@@ -1,0 +1,16 @@
+{
+  // Página central de dualstudio.app: solo archivos estáticos (sin código de servidor).
+  // Desplegar desde la raíz del repo:  npm run deploy:central
+  "name": "dualstudio",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  },
+
+  // Atiende todo dualstudio.app. Las apps tienen rutas más específicas en sus propios Workers
+  // (p. ej. dualstudio.app/cotizalo/*), y Cloudflare siempre usa la ruta más específica.
+  // Requiere un registro DNS «dualstudio.app» con proxy activado (ver README).
+  "routes": [{ "pattern": "dualstudio.app/*", "zone_name": "dualstudio.app" }],
+  "workers_dev": false
+}

@@ -1,9 +1,9 @@
 // Administración general de la plataforma: negocios (cada uno en dominio/<negocio>), sus administradores y la tasa BCV.
-import { $, $$, esc, api, icon, toast, modal, conBoton, fmtFecha, fmtTasa } from './common.js';
+import { $, $$, esc, api, BASE, urlCompleta, icon, toast, modal, conBoton, fmtFecha, fmtTasa } from './common.js';
 
 const root = $('#root');
-const urlNegocio = (slug) => `${location.origin}/${slug}`;
-const dirNegocio = (slug) => `${location.host}/${slug}`;
+const urlNegocio = (slug) => urlCompleta(`/${slug}`);
+const dirNegocio = (slug) => urlNegocio(slug).replace(/^https?:\/\//, '');
 const hora = (iso) => { try { return new Date(iso).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' }); } catch { return iso; } };
 
 async function boot() {
@@ -17,7 +17,7 @@ async function boot() {
 }
 
 function login() {
-  root.innerHTML = `<div class="login"><div class="card"><img src="/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
+  root.innerHTML = `<div class="login"><div class="card"><img src="${BASE}/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
     <h1>Administración general</h1><p class="muted">Acceso exclusivo de la plataforma.</p>
     <form id="f" novalidate><div class="field"><label for="e">Correo</label><input id="e" type="email" autocomplete="username"></div>
     <div class="field"><label for="p">Contraseña</label><input id="p" type="password" autocomplete="current-password"></div>
@@ -81,7 +81,7 @@ function formNegocio() {
   const m = modal({
     titulo: 'Nuevo negocio',
     html: `<div class="field"><label for="n">Nombre del negocio</label><input id="n" type="text" maxlength="80" placeholder="Laboratorio Central"></div>
-      <div class="field"><label for="s">Dirección</label><input id="s" type="text" maxlength="30" placeholder="labcentral" style="text-transform:lowercase"><span class="hint">Quedará como ${esc(location.host)}/labcentral. Solo minúsculas, números y guiones; no se puede repetir.</span></div>
+      <div class="field"><label for="s">Dirección</label><input id="s" type="text" maxlength="30" placeholder="labcentral" style="text-transform:lowercase"><span class="hint">Quedará como ${esc(dirNegocio('labcentral'))}. Solo minúsculas, números y guiones; no se puede repetir.</span></div>
       <div class="field"><label for="e">Correo del administrador</label><input id="e" type="email" autocomplete="off"></div>
       <div class="field"><label for="p">Contraseña inicial</label><input id="p" type="text" autocomplete="off" placeholder="Mínimo 8 caracteres"><span class="hint">Entrégasela al administrador; podrá cambiarla desde su panel.</span></div>`,
     acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, {

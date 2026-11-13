@@ -1,11 +1,11 @@
 {
   // Cloudflare Workers + D1. Documentación: https://developers.cloudflare.com/workers/wrangler/configuration/
-  "name": "lab", // da la dirección lab.<subdominio-de-la-cuenta>.workers.dev
+  "name": "cotizalo", // también responde en cotizalo.<subdominio-de-la-cuenta>.workers.dev (redirige a BASE_PATH)
   "main": "src/server.js",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"], // Buffer y node:crypto (firma HMAC de las sesiones)
 
-  // Páginas e imágenes. run_worker_first: el Worker decide el negocio por la ruta (/<negocio>) ANTES de servir cualquier página.
+  // Páginas e imágenes. run_worker_first: el Worker decide el negocio por la ruta (<base>/<negocio>) ANTES de servir cualquier página.
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -27,9 +27,11 @@
 
   // Variables públicas. Los secretos (SESSION_SECRET, CRON_SECRET, SUPER_*) NO van aquí: `wrangler secret put NOMBRE`.
   "vars": {
-    // "BASE_DOMAIN": "localhost",     // en producción: "tudominio.com"
-    // "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure, sin ?negocio=)
-    "BASE_DOMAIN": "lab.dualstudio.app",
+    // BASE_PATH: ruta donde vive la app dentro del dominio. Hoy: dualstudio.app/cotizalo.
+    // Si la app se muda a su propio dominio (p. ej. cotizalo.com), pon "" y cambia "routes" abajo:
+    // las direcciones pasan a cotizalo.com/<negocio> sin tocar el código.
+    "BASE_PATH": "/cotizalo",
+    // "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure)
     "ENVIRONMENT": "production",
     "TZ_OFFSET_MIN": "-240",
     "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",
@@ -40,9 +42,12 @@
   // Tasa BCV: una consulta por hora.
   "triggers": { "crons": ["0 * * * *"] },
 
-  // Dominio propio: lab.dualstudio.app/<negocio>. La zona dualstudio.app está en Cloudflare;
-  // con custom_domain, Cloudflare crea el registro DNS y el certificado al desplegar.
-  // Cada negocio vive en una ruta (/<negocio>), así que no hace falta DNS comodín.
-  // La dirección lab.<cuenta>.workers.dev sigue activa; para apagarla: "workers_dev": false
-  "routes": [{ "pattern": "lab.dualstudio.app", "custom_domain": true }]
+  // dualstudio.app/cotizalo y todo lo que cuelga de ahí (cada negocio en dualstudio.app/cotizalo/<negocio>).
+  // El resto de dualstudio.app lo atiende la página central (central/wrangler.jsonc).
+  // Deben coincidir con BASE_PATH. Con dominio propio, p. ej.:
+  //   "routes": [{ "pattern": "cotizalo.com", "custom_domain": true }]   y   "BASE_PATH": ""
+  "routes": [
+    { "pattern": "dualstudio.app/cotizalo", "zone_name": "dualstudio.app" },
+    { "pattern": "dualstudio.app/cotizalo/*", "zone_name": "dualstudio.app" }
+  ]
 }

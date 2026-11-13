@@ -1,7 +1,9 @@
 // Aplicación para Cloudflare Workers: Hono + D1.
 //
-//  • Resuelve el negocio por el primer segmento de la ruta: dominio/<negocio>, dominio/<negocio>/admin
-//    y dominio/<negocio>/api/...; la plataforma usa /, /super y /api/super/...
+//  • La app puede vivir en la raíz de su dominio o montada bajo una ruta (BASE_PATH, p. ej. /cotizalo).
+//    fetch() quita esa ruta antes de llegar a Hono, así que todo lo de abajo trabaja como si estuviera en la raíz.
+//  • Resuelve el negocio por el primer segmento de la ruta: <base>/<negocio>, <base>/<negocio>/admin
+//    y <base>/<negocio>/api/...; la plataforma usa <base>, <base>/super y <base>/api/super/...
 //  • Expone las rutas de src/routes/* (declaradas en un Router neutral) como rutas de Hono.
 //  • Sirve las páginas y los archivos estáticos de /public mediante el binding ASSETS.
 //  • export default { fetch, scheduled }: `scheduled` actualiza la tasa BCV con el Cron Trigger.
@@ -41,7 +43,7 @@ function respHtml(status, html, cookies = []) {
 }
 
 const paginaMensaje = (titulo, texto) =>
-  `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"><link rel="stylesheet" href="/css/app.css"></head><body class="mensaje"><main class="card centro"><h1>${titulo}</h1><p>${texto}</p></main></body></html>`;
+  `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"><link rel="stylesheet" href="${env.basePath}/css/app.css"></head><body class="mensaje"><main class="card centro"><h1>${titulo}</h1><p>${texto}</p></main></body></html>`;
 
 const noEncontrada = () => respHtml(404, paginaMensaje('No encontrado', 'La página que buscas no existe.'));
 
@@ -145,9 +147,19 @@ async function asset(c, ruta, { status = 200 } = {}) {
   const u = new URL(c.req.url);
   u.pathname = ruta;
   u.search = '';
-  const r = await c.env.ASSETS.fetch(new Request(u, { method: 'GET', headers: c.req.raw.headers }));
+  const html = ruta.endsWith('.html');
+  // Las páginas no se revalidan con ETag: se reescriben al servirlas (ver abajo).
+  const r = await c.env.ASSETS.fetch(new Request(u, { method: 'GET', headers: html ? {} : c.req.raw.headers }));
   if (r.status === 404) return noEncontrada();
   const h = new Headers(r.headers);
+  if (html) {
+    // Los HTML enlazan sus archivos desde la raíz (href="/css/app.css"); se les antepone BASE_PATH.
+    h.delete('etag');
+    h.delete('content-length');
+    h.set('cache-control', 'no-cache');
+    const texto = (await r.text()).replace(/(href|src)="\/(?!\/)/g, `$1="${env.basePath}/`);
+    return new Response(texto, { status, headers: h });
+  }
   h.set('cache-control', 'no-cache'); // revalida con ETag: los cambios se ven al instante
   return new Response(r.status === 304 ? null : r.body, { status: r.status === 304 ? 304 : status, headers: h });
 }
@@ -170,7 +182,7 @@ function canonica(c, resto = '') {
   const slug = String(c.req.param('negocio') || '').toLowerCase();
   const destino = `/${slug}${resto}`;
   if (url.pathname === destino) return null;
-  return new Response(null, { status: 301, headers: { location: destino + url.search } });
+  return new Response(null, { status: 301, headers: { location: env.basePath + destino + url.search } });
 }
 
 app.get('/', (c) => asset(c, '/landing.html'));
@@ -192,8 +204,28 @@ app.onError((e, c) => {
   return respHtml(status, paginaMensaje('Ups', mensaje));
 });
 
+/**
+ * Monta la app bajo BASE_PATH: /cotizalo/demo/admin → Hono ve /demo/admin.
+ * Lo que queda fuera de la base no es de esta app: la raíz del dominio redirige a la base
+ * (útil en *.workers.dev; en dualstudio.app esas rutas las atiende la página central).
+ */
+function montar(request, bindings, ctx) {
+  configurarEnv(bindings);
+  const base = env.basePath;
+  if (!base) return app.fetch(request, bindings, ctx);
+  const url = new URL(request.url);
+  const p = url.pathname;
+  if (p === base || p.startsWith(`${base}/`)) {
+    if (p === `${base}/`) return new Response(null, { status: 301, headers: { location: base + url.search } });
+    url.pathname = p.slice(base.length) || '/';
+    return app.fetch(new Request(url, request), bindings, ctx);
+  }
+  if (p === '/') return new Response(null, { status: 302, headers: { location: base } });
+  return conSeguridad(respHtml(404, paginaMensaje('No encontrado', 'La página que buscas no existe.')));
+}
+
 export default {
-  fetch: (request, bindings, ctx) => app.fetch(request, bindings, ctx),
+  fetch: montar,
   /** Cron Trigger (cada hora): actualiza la tasa BCV. */
   async scheduled(_event, bindings, ctx) {
     configurarEnv(bindings);

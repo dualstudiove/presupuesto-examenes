@@ -1,6 +1,6 @@
 // Panel de administración de un negocio: dashboard, catálogo, precios y configuración.
 import {
-  $, $$, esc, api, NEGOCIO, ref, fmtFecha, fmtNum, norm, icon, toast, modal, confirmar, conBoton, aplicarColor, diaLocal,
+  $, $$, esc, api, BASE, NEGOCIO, urlCompleta, ref, fmtFecha, fmtNum, norm, icon, toast, modal, confirmar, conBoton, aplicarColor, diaLocal,
   parsePrecio, centAInput, imagenAJpeg, fmtTasa,
 } from './common.js';
 import { graficoDias, barras, calor, semana, reparto } from './charts.js';
@@ -31,7 +31,7 @@ async function boot() {
 
 function vistaLogin() {
   root.innerHTML = `<div class="login"><div class="card">
-    <img src="/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
+    <img src="${BASE}/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
     <h1>Administración</h1><p class="muted">Ingresa con tu correo y contraseña.</p>
     <form id="f" novalidate>
       <div class="field"><label for="e">Correo</label><input id="e" type="email" autocomplete="username" required></div>
@@ -368,7 +368,7 @@ async function pConfig(page) {
       <div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="on" maxlength="80" placeholder="Nueva opción (ej.: Volante, TikTok…)" aria-label="Nueva opción"><button class="btn btn-soft" id="oa" style="flex:none">${icon('plus')} Agregar</button></div></div>
 
     <div class="card" style="max-width:760px"><h3>Dirección de la aplicación</h3>
-      <p class="small">Comparte este enlace con tus pacientes: <b>${esc(`${location.origin}/${slug}`)}</b></p><p class="muted xs">Panel de administración: ${esc(`${location.origin}/${slug}/admin`)}</p></div>
+      <p class="small">Comparte este enlace con tus pacientes: <b>${esc(urlCompleta(`/${slug}`))}</b></p><p class="muted xs">Panel de administración: ${esc(urlCompleta(`/${slug}/admin`))}</p></div>
 
     <div class="card" style="max-width:760px"><h3>Seguridad</h3>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>

@@ -24,7 +24,7 @@ const ASSETS = {
 export async function crearEntorno(extra = {}) {
   const d1 = crearD1Local(':memory:');
   await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
-  return { DB: d1, ASSETS, BASE_DOMAIN: 'localhost', SESSION_SECRET: 'test-secret-test-secret-test-secret-1234', BCV_DISABLED: 'true', ...extra };
+  return { DB: d1, ASSETS, SESSION_SECRET: 'test-secret-test-secret-test-secret-1234', BCV_DISABLED: 'true', ...extra };
 }
 
 /** Servidor Node que reenvía cada petición a worker.fetch(request, env). */

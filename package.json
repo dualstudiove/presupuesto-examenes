@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:central": "wrangler deploy -c central/wrangler.jsonc",
     "db:migrar:local": "wrangler d1 migrations apply presupuesto --local",
     "db:migrar": "wrangler d1 migrations apply presupuesto --remote",
     "seed": "node --disable-warning=ExperimentalWarning src/seed.js",

@@ -6,7 +6,7 @@ const bool = (v, def) => (v === undefined || v === null || v === '' ? def : v ==
 
 export const env = {
   production: false,
-  baseDomain: 'localhost',
+  basePath: '', // ruta donde está montada la app: '' (raíz de su dominio) o '/cotizalo'
   sessionSecret: '',
   cookieSecure: false,
   tzOffsetMin: -240,
@@ -14,15 +14,22 @@ export const env = {
   bcvStaleHours: 36,
   bcvDisabled: false,
   cronSecret: '',
-  allowTenantQuery: true,
   superEmail: '',
   superPassword: '',
 };
 
+/** '/cotizalo/' | 'cotizalo' | '/' | '' → '/cotizalo' o '' (sin barra final). */
+export function normalizarBase(v) {
+  const s = String(v ?? '').trim().replace(/^\/+|\/+$/g, '');
+  if (!s) return '';
+  if (!/^[a-z0-9][a-z0-9/_-]*$/i.test(s)) throw new Error(`BASE_PATH no válido: «${v}». Usa algo como /cotizalo.`);
+  return `/${s}`;
+}
+
 /** Aplica los bindings de Cloudflare (o un objeto equivalente, p. ej. process.env en pruebas/seed). */
 export function configurarEnv(b = {}) {
   env.production = b.ENVIRONMENT === 'production' || b.NODE_ENV === 'production';
-  env.baseDomain = String(b.BASE_DOMAIN || 'localhost').toLowerCase();
+  env.basePath = normalizarBase(b.BASE_PATH);
   env.sessionSecret = b.SESSION_SECRET || env.sessionSecret || '';
   env.cookieSecure = bool(b.COOKIE_SECURE, env.production);
   env.tzOffsetMin = Number(b.TZ_OFFSET_MIN ?? -240);
@@ -30,7 +37,6 @@ export function configurarEnv(b = {}) {
   env.bcvStaleHours = Number(b.BCV_STALE_HOURS || 36);
   env.bcvDisabled = bool(b.BCV_DISABLED, false);
   env.cronSecret = b.CRON_SECRET || '';
-  env.allowTenantQuery = bool(b.ALLOW_TENANT_QUERY, !env.production);
   env.superEmail = b.SUPER_EMAIL || '';
   env.superPassword = b.SUPER_PASSWORD || '';
   if (!env.sessionSecret) {
