@@ -130,3 +130,34 @@ test('borrar estadísticas: fechas no válidas y solo con sesión', async () => 
   assert.equal((await admin('/datos/borrar', { method: 'POST', body: { hasta: '2999-01-01' } })).status, 400);
   assert.equal((await pedir('/demo/api/admin/datos/borrar', { method: 'POST', body: { hasta: '2020-01-01' }, conSesion: false })).status, 401);
 });
+
+test('«Otro» en ¿Cómo se enteró?: se guarda lo que escriben y sale en el panel; con otra opción se ignora', async () => {
+  const cfg = (await publico('/config')).json;
+  const otro = cfg.origenes.find((o) => o.nombre === 'Otro');
+  const insta = cfg.origenes.find((o) => o.nombre === 'Instagram');
+  assert.equal(otro.pide_detalle, true);
+  assert.equal(insta.pide_detalle, false);
+  const cat = (await publico('/catalogo')).json;
+  const pedir1 = (origen_id, origen_detalle) => publico('/presupuesto', { method: 'POST', body: { items: [{ tipo: 'examen', id: cat.examenes[2].id }], origen_id, origen_detalle } });
+  assert.equal((await pedir1(otro.id, '  Un   volante en la panadería ')).status, 200);
+  assert.equal((await pedir1(otro.id, 'un volante en la panadería')).status, 200);
+  assert.equal((await pedir1(insta.id, 'esto no se guarda')).status, 200);
+  const guardados = (await D1.prepare("SELECT origen_detalle FROM presupuestos WHERE origen_detalle IS NOT NULL").all()).results.map((r) => r.origen_detalle);
+  assert.ok(guardados.includes('Un volante en la panadería'), 'se guarda limpio');
+  assert.ok(!guardados.includes('esto no se guarda'));
+  const hoy = new Date(Date.now() - 4 * 3600_000).toISOString().slice(0, 10);
+  const d = (await admin(`/dashboard?desde=${hoy}&hasta=${hoy}`)).json;
+  const fila = d.origen_detalles.find((x) => x.texto.toLowerCase() === 'un volante en la panadería');
+  assert.equal(fila.n, 2, 'agrupa sin importar mayúsculas');
+});
+
+test('reordenar las opciones de ¿Cómo se enteró?', async () => {
+  const antes = (await admin('/config')).json.origenes;
+  const nuevo = [...antes].reverse().map((o) => o.id);
+  assert.equal((await admin('/origenes/orden', { method: 'POST', body: { ids: nuevo } })).status, 200);
+  assert.deepEqual((await admin('/config')).json.origenes.map((o) => o.id), nuevo);
+  assert.deepEqual((await publico('/config')).json.origenes.map((o) => o.id), nuevo.filter((id) => antes.find((o) => o.id === id).activo));
+  assert.equal((await admin('/origenes/orden', { method: 'POST', body: { ids: nuevo.slice(1) } })).status, 400, 'faltan opciones');
+  assert.equal((await admin('/origenes/orden', { method: 'POST', body: { ids: [nuevo[0], ...nuevo.slice(0, -1)] } })).status, 400, 'repetidas');
+  assert.equal((await pedir('/demo/api/admin/origenes/orden', { method: 'POST', body: { ids: nuevo }, conSesion: false })).status, 401);
+});

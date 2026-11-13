@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import { env } from '../env.js';
 import { limite } from '../auth.js';
 import { refrescarSiHaceFalta, refrescarTasa, tasaGlobal } from '../bcv.js';
-import { getConfig, resolverTasa, crearPresupuesto } from '../negocio.js';
+import { getConfig, resolverTasa, crearPresupuesto, esOrigenOtro } from '../negocio.js';
 import { HttpError, uuid, nowIso, parteFecha } from '../util.js';
 
 export function registrarPublicas(r) {
@@ -11,7 +11,8 @@ export function registrarPublicas(r) {
     const cfg = await getConfig(negocio.id);
     refrescarSiHaceFalta(await tasaGlobal());
     const tasa = await resolverTasa(cfg);
-    const origenes = await db.all('SELECT id, nombre FROM origenes WHERE negocio_id = ? AND activo = 1 ORDER BY orden, nombre', [negocio.id]);
+    const origenes = (await db.all('SELECT id, nombre FROM origenes WHERE negocio_id = ? AND activo = 1 ORDER BY orden, nombre', [negocio.id]))
+      .map((o) => ({ ...o, pide_detalle: esOrigenOtro(o.nombre) }));
     return {
       negocio: {
         slug: negocio.slug,

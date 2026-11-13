@@ -330,6 +330,10 @@ main.patient { padding-top: 16px; padding-bottom: 110px; }
 .price { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: -.01em; white-space: nowrap; }
 .item .side .btn { min-width: 100px; }
 .item .side .btn::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+/* Sin «filter» al pasar el ratón: convierte el botón en contenedor del ::after, que encoge al tamaño del botón
+   y el cursor parpadea entre la flecha y la mano. Se oscurece con el color de fondo en su lugar. */
+.item .side .btn-primary:hover { filter: none; background: color-mix(in srgb, var(--accent) 86%, var(--ink)); }
+.item:hover .side .btn-soft { border-color: var(--accent); }
 .item .side .contador .btn::after { content: none; }
 .item .side .badge.ok { white-space: normal; text-align: left; }
 .item details { position: relative; z-index: 1; grid-column: 1 / -1; font-size: 13px; border-top: 1px solid var(--line-2); padding-top: 4px; }
@@ -397,6 +401,9 @@ body:has(.overlay) #toasts { top: calc(12px + env(safe-area-inset-top)) !importa
 .origenes .btn { justify-content: flex-start; font-weight: 500; }
 .origenes .btn:hover { border-color: var(--accent); color: var(--accent); }
 .sin-origen { width: 100%; }
+.origenes .btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.otro-detalle { display: grid; gap: 8px; margin: 0 0 8px; }
+.otro-detalle .field { margin: 0; }
 #v-resumen > h2 { font-size: 24px; }
 .back { margin: 0 0 4px -8px; }
 .lines .line { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
@@ -461,6 +468,13 @@ details.card > summary { font-weight: 600; }
 .repetir select { flex: 1 1 240px; }
 .repetir .input-unit { flex: 0 1 160px; }
 .repetir .input-unit input { padding-right: 92px; }
+.origen-fila { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+.origen-fila .mover { display: inline-flex; gap: 2px; flex: none; }
+.origen-fila .mover .btn:disabled { opacity: .25; }
+.detalles-otro { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.detalles-otro ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.detalles-otro li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13px; }
+.detalles-otro li span { overflow-wrap: anywhere; }
 .enlace { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .enlace code { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
 .zona-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }

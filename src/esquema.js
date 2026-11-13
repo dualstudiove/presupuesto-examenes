@@ -16,6 +16,8 @@ export const COLUMNAS = [
   ['categorias', 'max_por_examen', 'INTEGER'],
   // Cantidad de cada línea del presupuesto (p. ej. «Biopsia ×3»); precio_cent guarda el total de la línea
   ['presupuesto_items', 'cantidad', 'INTEGER NOT NULL DEFAULT 1'],
+  // Lo que escribió el paciente al elegir «Otro» en «¿Cómo se enteró de nosotros?»
+  ['presupuestos', 'origen_detalle', 'TEXT'],
 ];
 
 // Una revisión por base de datos (el binding D1) y por instancia del Worker.

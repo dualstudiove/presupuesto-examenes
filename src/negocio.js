@@ -9,6 +9,9 @@ export const RESERVADOS = new Set(['www', 'api', 'admin', 'super', 'app', 'mail'
 export const CATEGORIAS_BASE = ['Hematología', 'Coagulación', 'Química sanguínea', 'Orina', 'Heces', 'Hormonas', 'Inmunología'];
 export const ORIGENES_BASE = ['Instagram', 'Recomendación de un conocido', 'Referido por mi médico', 'Búsqueda en Google', 'Otro'];
 
+/** La opción «Otro» (u «Otros», «Otra»…) de «¿Cómo se enteró?» pide que el paciente escriba dónde. */
+export const esOrigenOtro = (nombre) => /^otr[oa]s?$/.test(String(nombre ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase());
+
 // ── Negocios ──
 const cacheNegocios = new Map();
 export async function negocioPorSlug(slug) {
@@ -194,6 +197,8 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     if (typeof input.origen_id === 'string' && input.origen_id) {
       origen = (await t.get('SELECT id, nombre FROM origenes WHERE id = ? AND negocio_id = ? AND activo = 1', [input.origen_id, negocio.id])) || null;
     }
+    // Solo se guarda lo que escribió si eligió «Otro»
+    const origenDetalle = origen && esOrigenOtro(origen.nombre) ? (String(input.origen_detalle ?? '').replace(/\s+/g, ' ').trim().slice(0, 80) || null) : null;
 
     // secuencia_base: el último número usado antes de borrar datos antiguos, para que los códigos nunca se repitan.
     const ultima = Number((await t.get('SELECT COALESCE(MAX(secuencia), 0) AS n FROM presupuestos WHERE negocio_id = ?', [negocio.id])).n);
@@ -203,9 +208,9 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     const creado = ahora.toISOString();
 
     await t.run(
-      `INSERT INTO presupuestos (id, negocio_id, secuencia, codigo, creado_en, dia, hora, dow, total_ref_cent, tasa_usada, total_bs_cent, origen_id, origen_nombre, dispositivo, num_items)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [pid, negocio.id, sec, codigo, creado, dia, hora, dow, totalRef, tasa ? tasa.valor : 0, totalBs, origen?.id ?? null, origen?.nombre ?? null, dispositivo, lineas.length],
+      `INSERT INTO presupuestos (id, negocio_id, secuencia, codigo, creado_en, dia, hora, dow, total_ref_cent, tasa_usada, total_bs_cent, origen_id, origen_nombre, origen_detalle, dispositivo, num_items)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [pid, negocio.id, sec, codigo, creado, dia, hora, dow, totalRef, tasa ? tasa.valor : 0, totalBs, origen?.id ?? null, origen?.nombre ?? null, origenDetalle, dispositivo, lineas.length],
     );
     for (const l of lineas) {
       await t.run(

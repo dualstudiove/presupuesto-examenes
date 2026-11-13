@@ -35,6 +35,12 @@ export async function calcularDashboard(negocioId, desde, hasta) {
       GROUP BY COALESCE(origen_nombre, 'No indicó') ORDER BY n DESC, nombre ASC`,
     p,
   );
+  // Lo que escribieron en «Otro», agrupado sin importar mayúsculas (los 10 más repetidos)
+  const detalles = await db.all(
+    `SELECT MIN(origen_detalle) AS texto, COUNT(*) AS n FROM presupuestos WHERE ${W} AND origen_detalle IS NOT NULL AND origen_detalle <> ''
+      GROUP BY LOWER(origen_detalle) ORDER BY n DESC, texto ASC LIMIT 10`,
+    p,
+  );
   const dispP = await db.all(`SELECT dispositivo, COUNT(*) AS n FROM presupuestos WHERE ${W} GROUP BY dispositivo`, p);
   const dispV = await db.all(`SELECT dispositivo, COUNT(*) AS n FROM visitas WHERE ${W} GROUP BY dispositivo`, p);
   const horasV = await db.all(`SELECT hora, COUNT(*) AS n FROM visitas WHERE ${W} GROUP BY hora`, p);
@@ -75,6 +81,7 @@ export async function calcularDashboard(negocioId, desde, hasta) {
     top_perfiles: topPerfiles.map((r) => ({ ...r, veces: Number(r.veces) })),
     categorias: categorias.map((r) => ({ ...r, veces: Number(r.veces) })),
     origenes: origenes.map((r) => ({ nombre: r.nombre, n: Number(r.n), pct: pct(Number(r.n), nPres) })),
+    origen_detalles: detalles.map((r) => ({ texto: r.texto, n: Number(r.n) })),
     dispositivos,
     horas: serie(24, horasV, horasP, 'hora'),
     dias_semana: serie(7, semV, semP, 'dow'),

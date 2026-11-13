@@ -394,6 +394,19 @@ export function registrarAdmin(r) {
     return { id };
   });
 
+  // Nuevo orden de las opciones de «¿Cómo se enteró?»: { ids: [...] } en el orden deseado (todas las del negocio).
+  r.add('POST', '/api/admin/origenes/orden', A, async ({ negocio, body }) => {
+    const ids = Array.isArray(body.ids) ? body.ids : [];
+    const actuales = (await db.all('SELECT id FROM origenes WHERE negocio_id = ?', [negocio.id])).map((o) => o.id);
+    if (ids.length !== actuales.length || new Set(ids).size !== ids.length || !ids.every((id) => actuales.includes(id))) {
+      throw new HttpError(400, 'La lista de opciones no coincide. Recarga la página e inténtalo de nuevo.');
+    }
+    await db.tx(async (t) => {
+      for (const [i, id] of ids.entries()) await t.run('UPDATE origenes SET orden = ? WHERE id = ? AND negocio_id = ?', [i, id, negocio.id]);
+    });
+    return { ok: true };
+  });
+
   r.add('PUT', '/api/admin/origenes/:id', A, async ({ negocio, params, body }) => {
     const o = await db.get('SELECT * FROM origenes WHERE id = ? AND negocio_id = ?', [params.id, negocio.id]);
     if (!o) throw new HttpError(404, 'La opción no existe.');

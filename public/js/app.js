@@ -51,6 +51,7 @@ function cargarEstado() {
   const p = leer(sessionStorage, 'pac'); // los datos personales duran solo mientras la pestaña esté abierta
   if (p) S.pac = { ...S.pac, ...p };
   S.origen = leer(sessionStorage, 'origen') || '';
+  S.origenDetalle = leer(sessionStorage, 'origenD') || '';
   S.origenRespondido = !!leer(sessionStorage, 'origenR');
 }
 const guardarCarro = () => guardar(localStorage, 'carro', { ex: S.ex, pf: S.pf, cant: S.cant });
@@ -148,7 +149,7 @@ function cardExamen(e) {
   else accion = `<button type="button" class="btn btn-sm ${sel ? 'btn-primary' : 'btn-soft'}" data-act="ex" data-id="${esc(e.id)}" aria-pressed="${sel}">${sel ? `${icon('check')} Agregado` : `${icon('plus')} Agregar`}</button>`;
   return `<article class="item ${sel ? 'sel' : ''} ${cub ? 'dis' : ''}">
     <div><h3>${esc(e.nombre)}</h3>
-      <div class="meta">${cat ? `<span class="badge cat-${(S.cat.categorias.indexOf(cat) % 5) + 1}">${esc(cat.nombre)}</span>` : ''}${max > 1 ? `<span>Puedes pedir hasta ${max}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
+      <div class="meta">${cat ? `<span class="badge cat-${(S.cat.categorias.indexOf(cat) % 5) + 1}">${esc(cat.nombre)}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
       ${e.descripcion ? `<p class="desc">${esc(e.descripcion)}</p>` : ''}</div>
     <div class="side"><div class="price">${ref(e.precio_cent)}${max > 1 ? '<small> c/u</small>' : ''}</div>${accion}</div>
   </article>`;
@@ -298,20 +299,41 @@ function preguntarOrigen() {
     const m = modal({
       titulo: 'Un último paso',
       html: `<p>¿Cómo se enteró de nosotros?</p>
-        <div class="origenes">${S.cfg.origenes.map((o) => `<button type="button" class="btn btn-lg" data-o="${esc(o.id)}">${esc(o.nombre)}</button>`).join('')}</div>
+        <div class="origenes">${S.cfg.origenes.map((o) => `<button type="button" class="btn btn-lg" data-o="${esc(o.id)}" ${o.pide_detalle ? 'data-detalle="1"' : ''}>${esc(o.nombre)}</button>`).join('')}</div>
+        <div class="otro-detalle" hidden>
+          <div class="field"><label for="od">¿Dónde fue?</label><input id="od" type="text" maxlength="80" placeholder="Ej.: un volante, la radio, otra red social…" autocomplete="off"></div>
+          <button type="button" class="btn btn-primary btn-lg" data-continuar>Continuar</button>
+        </div>
         <button type="button" class="btn btn-ghost btn-sm sin-origen" data-o="">Prefiero no decirlo</button>`,
       onClose: () => resolve(elegido),
     });
-    m.el.querySelector('.mb').addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-o]');
-      if (!b) return;
-      S.origen = b.dataset.o;
+    const responder = (id, detalle = '') => {
+      S.origen = id;
+      S.origenDetalle = detalle.trim();
       S.origenRespondido = true;
       guardar(sessionStorage, 'origen', S.origen);
+      guardar(sessionStorage, 'origenD', S.origenDetalle);
       guardar(sessionStorage, 'origenR', 1);
       elegido = true;
       m.cerrar();
+    };
+    const caja = m.el.querySelector('.otro-detalle');
+    let otro = null;
+    m.el.querySelector('.mb').addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-continuar]')) { responder(otro, $('#od', m.el).value); return; }
+      const b = ev.target.closest('[data-o]');
+      if (!b) return;
+      // «Otro»: antes de seguir, se le pide que escriba dónde (opcional)
+      if (b.dataset.detalle) {
+        otro = b.dataset.o;
+        m.el.querySelectorAll('.origenes .btn').forEach((x) => x.classList.toggle('on', x === b));
+        caja.hidden = false;
+        $('#od', m.el).focus();
+        return;
+      }
+      responder(b.dataset.o);
     });
+    $('#od', m.el).addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); responder(otro, ev.target.value); } });
     m.el.querySelector('[data-o]')?.focus();
   });
 }
@@ -319,11 +341,11 @@ function preguntarOrigen() {
 async function generar(btn) {
   if (!(await preguntarOrigen())) return;
   const lista = items();
-  const firma = `${JSON.stringify([...lista].sort((a, b) => a.id.localeCompare(b.id)))}|${S.origen}`;
+  const firma = `${JSON.stringify([...lista].sort((a, b) => a.id.localeCompare(b.id)))}|${S.origen}|${S.origenDetalle}`;
   if (S.res && S.firma === firma) { irA('ok'); return; } // mismo presupuesto: no se cuenta dos veces
   await conBoton(btn, async () => {
     try {
-      S.res = await api('/api/publico/presupuesto', { method: 'POST', body: { items: lista, origen_id: S.origen || null, dispositivo: dispositivo() } });
+      S.res = await api('/api/publico/presupuesto', { method: 'POST', body: { items: lista, origen_id: S.origen || null, origen_detalle: S.origenDetalle || null, dispositivo: dispositivo() } });
       S.firma = firma;
       guardar(localStorage, 'res', { res: S.res, firma });
       irA('ok');
@@ -482,7 +504,7 @@ document.addEventListener('click', (e) => {
     case 'pdf': case 'png': case 'texto': case 'compartir': exportar(act, b); break;
     case 'editar': S.vista = 'resumen'; history.pushState({ v: 'resumen' }, ''); renderVista(); break;
     case 'nuevo':
-      S.ex = []; S.cant = {}; S.pf = []; S.res = null; S.firma = null; S.origen = '';
+      S.ex = []; S.cant = {}; S.pf = []; S.res = null; S.firma = null; S.origen = ''; S.origenDetalle = '';
       guardarCarro(); localStorage.removeItem(`${K}:res`);
       S.vista = 'catalogo'; history.pushState({ v: 'catalogo' }, ''); renderLista(); renderVista();
       break;
