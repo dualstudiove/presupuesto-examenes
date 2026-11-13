@@ -42,6 +42,12 @@ async function pintar(yo) {
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn btn-soft" id="act">Consultar ahora</button>
         <div class="input-unit" style="width:200px"><input id="tm" type="text" inputmode="decimal" placeholder="Tasa manual" aria-label="Tasa manual"><span>Bs.</span></div><button class="btn" id="gm">Guardar tasa manual</button></div>
       <p class="muted xs" style="margin-top:8px">La tasa manual sirve de respaldo si la fuente automática falla; la próxima consulta exitosa la reemplaza.</p></div>
+
+    <div class="card" style="margin-top:12px;max-width:760px"><h3>Tu cuenta</h3>
+      <p class="muted small">Entras como <b>${esc(yo.email)}</b>.</p>
+      <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>
+        <div class="field"><label for="pn">Contraseña nueva</label><input id="pn" type="password" autocomplete="new-password" minlength="8"><span class="hint">Mínimo 8 caracteres.</span></div></div>
+        <button class="btn" type="submit">Cambiar contraseña</button></form></div>
   </main>`;
 
   $('#salir').addEventListener('click', async () => { await api('/api/super/logout', { method: 'POST' }).catch(() => {}); aInicio(); });
@@ -51,6 +57,14 @@ async function pintar(yo) {
     if (r.ok) toast(`Tasa actualizada: ${fmtTasa(r.valor)} Bs.`, 'ok'); else toast(`No se pudo consultar: ${r.error}`, 'bad');
     boot();
   }));
+  $('#fpw').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    await conBoton($('button', ev.target), async () => {
+      await api('/api/super/password', { method: 'POST', body: { actual: $('#pa').value, nueva: $('#pn').value } });
+      ev.target.reset();
+      toast('Contraseña actualizada', 'ok');
+    });
+  });
   $('#gm').addEventListener('click', (ev) => conBoton(ev.currentTarget, async () => {
     const v = Number($('#tm').value.replace(',', '.'));
     if (!Number.isFinite(v) || v <= 0) return toast('Escribe una tasa válida.', 'bad');

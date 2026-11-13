@@ -18,7 +18,7 @@ import { negocioPorSlug, RESERVADOS } from './negocio.js';
 import { consultaProgramada } from './bcv.js';
 import { registrarPublicas } from './routes/public.js';
 import { registrarAdmin } from './routes/admin.js';
-import { registrarSuper, superDe } from './routes/super.js';
+import { registrarSuper, superDe, asegurarSuperDesdeSecretos } from './routes/super.js';
 import { registrarAcceso } from './routes/acceso.js';
 
 const router = new Router();
@@ -95,6 +95,7 @@ async function leerJson(req, max = 400_000) {
 app.use('*', async (c, next) => {
   configurarEnv(c.env);
   bindD1(c.env.DB);
+  await asegurarSuperDesdeSecretos();
   rt.waitUntil = (p) => {
     const q = Promise.resolve(p).catch(() => {});
     try { c.executionCtx.waitUntil(q); } catch { /* sin ExecutionContext (pruebas) */ }

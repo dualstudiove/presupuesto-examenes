@@ -17,6 +17,31 @@ export async function superDe(cookies) {
   try { return await sesionSuper({ cookies }); } catch { return null; }
 }
 
+// ── Recuperar el acceso sin terminal ──
+// Si el Worker tiene los secretos SUPER_EMAIL y SUPER_PASSWORD (Cloudflare → Worker → Configuración →
+// Variables y secretos), ese superadministrador se crea, o se le pone esa contraseña si ya existía.
+// Se comprueba una vez por instancia del Worker. Al terminar, conviene borrar los secretos: mientras
+// existan, la contraseña vuelve a ser esa cada vez que arranque una instancia nueva.
+let secretosAplicados = null;
+export async function asegurarSuperDesdeSecretos() {
+  const email = String(env.superEmail || '').trim().toLowerCase();
+  const pw = String(env.superPassword || '');
+  if (!email || !pw) return;
+  const clave = `${email}\n${pw}`;
+  if (secretosAplicados === clave) return;
+  secretosAplicados = clave; // también si falla: no se reintenta en cada petición
+  if (!esEmail(email) || pw.length < 8 || pw.length > 200) {
+    console.error('[super] SUPER_EMAIL o SUPER_PASSWORD no son válidos (la contraseña necesita 8 caracteres o más).');
+    return;
+  }
+  const u = await db.get('SELECT id, password_hash FROM superadmins WHERE email = ?', [email]);
+  if (u && (await verifyPassword(pw, u.password_hash))) return;
+  const hash = await hashPassword(pw);
+  if (u) await db.run('UPDATE superadmins SET password_hash = ? WHERE id = ?', [hash, u.id]);
+  else await db.run('INSERT OR IGNORE INTO superadmins (id, email, password_hash, creado_en) VALUES (?,?,?,?)', [uuid(), email, hash, nowIso()]);
+  console.log(`[super] Acceso de superadministrador ${u ? 'restablecido' : 'creado'} desde los secretos: ${email}`);
+}
+
 export async function sesionSuper(ctx) {
   const tok = leerToken(ctx.cookies.sid_super);
   if (!tok || tok.k !== 's') throw new HttpError(401, 'Inicia sesión para continuar.');
@@ -48,6 +73,14 @@ export function registrarSuper(r) {
 
   r.add('POST', '/api/super/logout', { root: true }, async (ctx) => {
     ctx.setCookies.push(cookie('sid_super', '', { expire: true }));
+    return { ok: true };
+  });
+
+  r.add('POST', '/api/super/password', S, async ({ usuario, body, setCookies }) => {
+    if (!(await verifyPassword(String(body.actual || ''), usuario.password_hash))) throw new HttpError(400, 'La contraseña actual no es correcta.');
+    const hash = await hashPassword(validarPassword(body.nueva));
+    await db.run('UPDATE superadmins SET password_hash = ? WHERE id = ?', [hash, usuario.id]);
+    setCookies.push(cookieSesionSuper({ id: usuario.id, password_hash: hash }));
     return { ok: true };
   });
 

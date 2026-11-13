@@ -52,6 +52,16 @@ npm run dev                                 # http://localhost:8787/cotizalo/dem
 
 Credenciales de ejemplo: `admin@demo.test` / `Demo12345`, `admin@norte.test` / `Norte12345`, `super@plataforma.test` / `Super12345` (cámbialas con `SUPER_EMAIL`/`SUPER_PASSWORD` antes de `npm run seed`; no uses `seed:demo` en producción).
 
+## Recuperar el acceso del superadministrador (sin terminal)
+
+1. Cloudflare → Workers y Pages → **cotizalo** → **Configuración** → **Variables y secretos** → **Agregar**.
+2. Dos secretos (tipo *Secreto*): `SUPER_EMAIL` con tu correo y `SUPER_PASSWORD` con una contraseña nueva de 8 caracteres o más.
+3. Al guardar, Cloudflare publica la versión con esos secretos. En la próxima visita, la app crea ese superadministrador o, si el correo ya existía, le pone esa contraseña.
+4. Entra en `dualstudio.app/cotizalo` con ese correo y esa contraseña.
+5. **Borra los dos secretos.** Mientras existan, la contraseña vuelve a ser esa cada vez que Cloudflare arranca el Worker, aunque la cambies en el panel.
+
+Desde el panel general (tarjeta **Tu cuenta**) el superadministrador cambia su contraseña cuando quiera.
+
 ## Publicar
 
 **Día a día:** Cloudflare está conectado a este repositorio (`dualstudiove/cotizalo`). Cada cambio que llega a la rama `master` se publica solo:
