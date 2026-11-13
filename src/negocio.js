@@ -101,9 +101,12 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
   if (items.length > 80) throw new HttpError(400, 'El presupuesto tiene demasiados ítems.');
   const exIds = [];
   const pfIds = [];
+  const cantidades = new Map(); // examen → cantidad pedida (1 si no se indica)
   for (const it of items) {
     if (!it || typeof it.id !== 'string' || it.id.length > 64) throw new HttpError(400, 'Ítem inválido.');
-    if (it.tipo === 'examen') exIds.push(it.id);
+    const cant = it.cantidad === undefined ? 1 : Number(it.cantidad);
+    if (!Number.isInteger(cant) || cant < 1 || cant > 99 || (it.tipo !== 'examen' && cant !== 1)) throw new HttpError(400, 'Cantidad inválida.');
+    if (it.tipo === 'examen') { exIds.push(it.id); cantidades.set(it.id, cant); }
     else if (it.tipo === 'perfil') pfIds.push(it.id);
     else throw new HttpError(400, 'Ítem inválido.');
   }
@@ -120,7 +123,7 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
   return db.tx(async (t) => {
     const examenes = exIds.length
       ? await t.all(
-          `SELECT e.id, e.nombre, e.precio_cent, e.categoria_id, c.nombre AS categoria
+          `SELECT e.id, e.nombre, e.precio_cent, e.categoria_id, c.nombre AS categoria, c.max_por_examen
              FROM examenes e JOIN categorias c ON c.id = e.categoria_id
             WHERE e.negocio_id = ? AND e.activo = 1 AND c.activo = 1 AND e.id IN (${placeholders(exIds)})`,
           [negocio.id, ...exIds],
@@ -156,18 +159,14 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     for (const p of perfiles) for (const m of miembros.filter((x) => x.perfil_id === p.id)) registrar(m.id, m.nombre, `«${p.nombre}»`);
     for (const e of examenes) registrar(e.id, e.nombre, 'el presupuesto');
 
-    // Máximo de exámenes sueltos por categoría (lo configura el negocio; los que vienen dentro de un perfil no cuentan).
-    if (examenes.length) {
-      const cats = await t.all('SELECT * FROM categorias WHERE negocio_id = ?', [negocio.id]);
-      for (const c of cats) {
-        const max = Number(c.max_examenes) || 0;
-        if (!max) continue;
-        const n = examenes.filter((e) => e.categoria_id === c.id).length;
-        if (n > max) {
-          throw new HttpError(409, max === 1
-            ? `De «${c.nombre}» solo puedes elegir un examen.`
-            : `De «${c.nombre}» puedes elegir hasta ${max} exámenes.`);
-        }
+    // ¿Cuántas veces se puede pedir el mismo examen? Lo decide su categoría (por defecto, una sola vez).
+    for (const e of examenes) {
+      const max = Number(e.max_por_examen) > 1 ? Number(e.max_por_examen) : 1;
+      const cant = cantidades.get(e.id);
+      if (cant > max) {
+        throw new HttpError(409, max === 1
+          ? `«${e.nombre}» solo se puede pedir una vez.`
+          : `«${e.nombre}» se puede pedir hasta ${max} veces.`);
       }
     }
 
@@ -176,11 +175,15 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     const lineas = items.map((it) => {
       if (it.tipo === 'examen') {
         const e = exMap.get(it.id);
-        return { tipo: 'examen', id: e.id, nombre: e.nombre, categoria: e.categoria, precio_cent: e.precio_cent, incluye: [] };
+        const cantidad = cantidades.get(e.id);
+        return {
+          tipo: 'examen', id: e.id, nombre: e.nombre, categoria: e.categoria, cantidad,
+          precio_unit_cent: e.precio_cent, precio_cent: e.precio_cent * cantidad, incluye: [],
+        };
       }
       const p = pfMap.get(it.id);
       return {
-        tipo: 'perfil', id: p.id, nombre: p.nombre, categoria: null, precio_cent: p.precio_cent,
+        tipo: 'perfil', id: p.id, nombre: p.nombre, categoria: null, cantidad: 1, precio_unit_cent: p.precio_cent, precio_cent: p.precio_cent,
         incluye: miembros.filter((m) => m.perfil_id === p.id).map((m) => m.nombre),
       };
     });
@@ -206,11 +209,12 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     );
     for (const l of lineas) {
       await t.run(
-        'INSERT INTO presupuesto_items (id, presupuesto_id, negocio_id, dia, tipo, ref_id, nombre, precio_cent) VALUES (?,?,?,?,?,?,?,?)',
-        [uuid(), pid, negocio.id, dia, l.tipo, l.id, l.nombre, l.precio_cent],
+        'INSERT INTO presupuesto_items (id, presupuesto_id, negocio_id, dia, tipo, ref_id, nombre, precio_cent, cantidad) VALUES (?,?,?,?,?,?,?,?,?)',
+        [uuid(), pid, negocio.id, dia, l.tipo, l.id, l.nombre, l.precio_cent, l.cantidad],
       );
+      // Para las estadísticas, cada unidad cuenta: «Biopsia ×3» son tres exámenes pedidos.
       const filas = l.tipo === 'examen'
-        ? [{ id: l.id, nombre: l.nombre, categoria: l.categoria, perfil: null }]
+        ? Array.from({ length: l.cantidad }, () => ({ id: l.id, nombre: l.nombre, categoria: l.categoria, perfil: null }))
         : miembros.filter((m) => m.perfil_id === l.id).map((m) => ({ id: m.id, nombre: m.nombre, categoria: m.categoria, perfil: l.nombre }));
       for (const f of filas) {
         await t.run(

@@ -8,17 +8,27 @@ import {
 
 const S = {
   cfg: null, cat: null, vista: 'catalogo', tab: 'examenes', q: '', catId: '',
-  ex: [], pf: [], pac: { nombre: '', cedula: '', telefono: '', medico: '' }, origen: '', res: null, firma: null,
+  ex: [], cant: {}, pf: [], pac: { nombre: '', cedula: '', telefono: '', medico: '' }, origen: '', res: null, firma: null,
 };
 let exMap = new Map();
 let pfMap = new Map();
 let K = 'pe:?';
 
 // ───────────── Datos derivados ─────────────
-const nItems = () => S.ex.length + S.pf.length;
-const totalRef = () => S.ex.reduce((s, id) => s + (exMap.get(id)?.precio_cent || 0), 0) + S.pf.reduce((s, id) => s + (pfMap.get(id)?.precio_cent || 0), 0);
+// Cantidad de cada examen (S.cant solo guarda las mayores que 1). Cuántas veces se puede pedir
+// un mismo examen lo decide su categoría: max_por_examen (vacío o 1 = una sola vez).
+const cant = (id) => S.cant[id] || 1;
+const maxPor = (e) => { const c = S.cat.categorias.find((k) => k.id === e?.categoria_id); return Number(c?.max_por_examen) > 1 ? Number(c.max_por_examen) : 1; };
+const nItems = () => S.ex.reduce((s, id) => s + cant(id), 0) + S.pf.length;
+const totalRef = () => S.ex.reduce((s, id) => s + (exMap.get(id)?.precio_cent || 0) * cant(id), 0) + S.pf.reduce((s, id) => s + (pfMap.get(id)?.precio_cent || 0), 0);
 const cubiertoPor = (exId) => { for (const pid of S.pf) { const p = pfMap.get(pid); if (p?.ids.has(exId)) return p; } return null; };
-const items = () => [...S.ex.map((id) => ({ tipo: 'examen', id })), ...S.pf.map((id) => ({ tipo: 'perfil', id }))];
+const items = () => [...S.ex.map((id) => (cant(id) > 1 ? { tipo: 'examen', id, cantidad: cant(id) } : { tipo: 'examen', id })), ...S.pf.map((id) => ({ tipo: 'perfil', id }))];
+/** Deja las cantidades coherentes: solo de exámenes elegidos y sin pasar el máximo de su categoría. */
+function ajustarCantidades() {
+  const c = {};
+  for (const id of S.ex) { const n = Math.min(Number(S.cant[id]) || 1, maxPor(exMap.get(id))); if (n > 1) c[id] = n; }
+  S.cant = c;
+}
 
 function indexar() {
   exMap = new Map(S.cat.examenes.map((e) => [e.id, e]));
@@ -30,11 +40,12 @@ const leer = (store, k) => { try { return JSON.parse(store.getItem(`${K}:${k}`))
 const guardar = (store, k, v) => { try { store.setItem(`${K}:${k}`, JSON.stringify(v)); } catch { /* almacenamiento no disponible */ } };
 function cargarEstado() {
   const c = leer(localStorage, 'carro');
-  if (c) { S.ex = (c.ex || []).filter((id) => exMap.has(id)); S.pf = (c.pf || []).filter((id) => pfMap.has(id)); }
+  if (c) { S.ex = [...new Set((c.ex || []).filter((id) => exMap.has(id)))]; S.pf = (c.pf || []).filter((id) => pfMap.has(id)); S.cant = c.cant || {}; }
   // Seguridad: si el carro guardado tuviera repetidos, se limpia
   const usados = new Set();
   for (const id of S.pf) for (const x of pfMap.get(id).ids) { if (usados.has(x)) { S.pf = []; break; } usados.add(x); }
   S.ex = S.ex.filter((id) => !cubiertoPor(id));
+  ajustarCantidades();
   const r = leer(localStorage, 'res');
   if (r) { S.res = r.res; S.firma = r.firma; }
   const p = leer(sessionStorage, 'pac'); // los datos personales duran solo mientras la pestaña esté abierta
@@ -42,7 +53,7 @@ function cargarEstado() {
   S.origen = leer(sessionStorage, 'origen') || '';
   S.origenRespondido = !!leer(sessionStorage, 'origenR');
 }
-const guardarCarro = () => guardar(localStorage, 'carro', { ex: S.ex, pf: S.pf });
+const guardarCarro = () => guardar(localStorage, 'carro', { ex: S.ex, pf: S.pf, cant: S.cant });
 
 // ───────────── Arranque ─────────────
 async function init() {
@@ -130,14 +141,28 @@ function cardExamen(e) {
   const sel = S.ex.includes(e.id);
   const cub = !sel && cubiertoPor(e.id);
   const cat = S.cat.categorias.find((c) => c.id === e.categoria_id);
+  const max = maxPor(e);
+  let accion;
+  if (cub) accion = `<span class="badge ok" style="white-space:normal;text-align:center;max-width:130px">Incluido en ${esc(cub.nombre)}</span>`;
+  else if (sel && max > 1) accion = contador(e, 'tarjeta');
+  else accion = `<button type="button" class="btn btn-sm ${sel ? 'btn-primary' : 'btn-soft'}" data-act="ex" data-id="${esc(e.id)}" aria-pressed="${sel}">${sel ? `${icon('check')} Agregado` : `${icon('plus')} Agregar`}</button>`;
   return `<article class="item ${sel ? 'sel' : ''} ${cub ? 'dis' : ''}">
     <div><h3>${esc(e.nombre)}</h3>
-      <div class="meta">${cat ? `<span class="badge cat-${(S.cat.categorias.indexOf(cat) % 5) + 1}">${esc(cat.nombre)}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
+      <div class="meta">${cat ? `<span class="badge cat-${(S.cat.categorias.indexOf(cat) % 5) + 1}">${esc(cat.nombre)}</span>` : ''}${max > 1 ? `<span>Puedes pedir hasta ${max}</span>` : ''}${e.indicaciones ? `<span>${icon('info')} ${esc(e.indicaciones)}</span>` : ''}</div>
       ${e.descripcion ? `<p class="desc">${esc(e.descripcion)}</p>` : ''}</div>
-    <div class="side"><div class="price">${ref(e.precio_cent)}</div>
-      ${cub ? `<span class="badge ok" style="white-space:normal;text-align:center;max-width:130px">Incluido en ${esc(cub.nombre)}</span>`
-        : `<button type="button" class="btn btn-sm ${sel ? 'btn-primary' : 'btn-soft'}" data-act="ex" data-id="${esc(e.id)}" aria-pressed="${sel}">${sel ? `${icon('check')} Agregado` : `${icon('plus')} Agregar`}</button>`}</div>
+    <div class="side"><div class="price">${ref(e.precio_cent)}${max > 1 ? '<small> c/u</small>' : ''}</div>${accion}</div>
   </article>`;
+}
+
+/** Contador − n + para los exámenes que se pueden pedir varias veces. */
+function contador(e, donde) {
+  const n = cant(e.id);
+  const max = maxPor(e);
+  return `<div class="contador ${donde}" role="group" aria-label="Cantidad de ${esc(e.nombre)}">
+    <button type="button" class="btn btn-sm btn-icon" data-act="menos" data-id="${esc(e.id)}" aria-label="${n === 1 ? 'Quitar' : 'Uno menos'}">${n === 1 ? icon('trash') : '−'}</button>
+    <span aria-live="polite">${n}</span>
+    <button type="button" class="btn btn-sm btn-icon" data-act="mas" data-id="${esc(e.id)}" aria-label="Uno más" ${n >= max ? 'disabled' : ''}>+</button>
+  </div>`;
 }
 
 function cardPerfil(p) {
@@ -168,8 +193,8 @@ function renderLista() {
     html = lista.map(S.tab === 'examenes' ? cardExamen : cardPerfil).join('');
     // Si la categoría elegida tiene límite, se avisa antes de que el paciente choque con él
     const cat = S.tab === 'examenes' && S.catId && S.cat.categorias.find((c) => c.id === S.catId);
-    const max = Number(cat?.max_examenes) || 0;
-    if (max) html = `<p class="limite">${icon('info')} De ${esc(cat.nombre)} puedes elegir ${max === 1 ? '<b>solo un examen</b>' : `<b>hasta ${max} exámenes</b>`}.</p>${html}`;
+    const max = Number(cat?.max_por_examen) || 0;
+    if (max > 1) html = `<p class="limite">${icon('info')}<span>De ${esc(cat.nombre)} puedes pedir el mismo examen <b>hasta ${max} veces</b>.</span></p>${html}`;
   }
   $('#lista').innerHTML = html;
   renderCartBar();
@@ -216,7 +241,11 @@ function renderResumen() {
   const total = totalRef();
   const lineas = [
     ...S.pf.map((id) => pfMap.get(id)).map((p) => ({ tipo: 'pf', id: p.id, nombre: p.nombre, precio: p.precio_cent, sub: `Incluye ${p.examenes.length} exámenes: ${p.examenes.map((m) => m.nombre).join(', ')}` })),
-    ...S.ex.map((id) => exMap.get(id)).map((e) => ({ tipo: 'ex', id: e.id, nombre: e.nombre, precio: e.precio_cent, sub: e.indicaciones || '' })),
+    ...S.ex.map((id) => exMap.get(id)).map((e) => {
+      const n = cant(e.id);
+      const sub = [n > 1 && `${n} × ${ref(e.precio_cent)}`, e.indicaciones].filter(Boolean).join(' · ');
+      return { tipo: 'ex', id: e.id, nombre: e.nombre, precio: e.precio_cent * n, sub, e, repetible: maxPor(e) > 1 };
+    }),
   ];
   el.innerHTML = `
     <div class="res-head"><button type="button" class="btn btn-ghost back" data-act="volver">${icon('back')} Seguir agregando</button>
@@ -224,8 +253,8 @@ function renderResumen() {
     <ol class="pasos" aria-label="Pasos"><li class="hecho"><i>${icon('check')}</i>Elige</li><li class="actual" aria-current="step"><i>2</i>Revisa</li><li><i>3</i>Genera</li></ol>
     <h2 style="margin:4px 0 10px">Revisa tu presupuesto</h2>
     <div class="notice falta">${icon('info')}<div><b>Aún no está listo.</b> Revisa los exámenes y pulsa <b>Generar presupuesto</b>: así obtienes tu código y puedes descargarlo para presentarlo en el laboratorio.</div></div>
-    <div class="card lines">${lineas.map((l) => `<div class="line"><div><b>${esc(l.nombre)}</b>${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</div><div class="price">${ref(l.precio)}</div>
-      <button type="button" class="btn btn-icon btn-ghost" aria-label="Quitar ${esc(l.nombre)}" data-act="${l.tipo}" data-id="${esc(l.id)}">${icon('trash')}</button></div>`).join('')}</div>
+    <div class="card lines">${lineas.map((l) => `<div class="line ${l.repetible ? 'con-contador' : ''}"><div><b>${esc(l.nombre)}</b>${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</div><div class="price">${ref(l.precio)}</div>
+      ${l.repetible ? contador(l.e, 'linea') : `<button type="button" class="btn btn-icon btn-ghost" aria-label="Quitar ${esc(l.nombre)}" data-act="${l.tipo}" data-id="${esc(l.id)}">${icon('trash')}</button>`}</div>`).join('')}</div>
     <div class="card totals">
       <div class="tr"><span>Total en REF</span><span class="big">${ref(total)}</span></div>
       ${t ? `<div class="tr main"><span>Total en bolívares</span><span class="big">${bs(Math.round(total * t.valor))}</span></div>
@@ -312,6 +341,7 @@ async function recargar() {
     indexar();
     S.ex = S.ex.filter((id) => exMap.has(id) && !cubiertoPor(id));
     S.pf = S.pf.filter((id) => pfMap.has(id));
+    ajustarCantidades();
     guardarCarro();
     renderTodo();
   } catch { /* se mostrará el error original */ }
@@ -342,26 +372,24 @@ function cambio() {
 function alternarExamen(id) {
   const e = exMap.get(id);
   if (!e) return;
-  if (S.ex.includes(id)) S.ex = S.ex.filter((x) => x !== id);
+  if (S.ex.includes(id)) { S.ex = S.ex.filter((x) => x !== id); delete S.cant[id]; }
   else {
     const p = cubiertoPor(id);
     if (p) { toast(`«${e.nombre}» ya está incluido en ${p.nombre}.`); return; }
-    // Límite de exámenes sueltos por categoría (lo configura el negocio)
-    const cat = S.cat.categorias.find((c) => c.id === e.categoria_id);
-    const max = Number(cat?.max_examenes) || 0;
-    const mismos = S.ex.filter((x) => exMap.get(x)?.categoria_id === e.categoria_id);
-    if (max && mismos.length >= max) {
-      if (max === 1) {
-        // Solo uno: se cambia el anterior por el nuevo
-        S.ex = S.ex.filter((x) => x !== mismos[0]);
-        toast(`Cambiamos «${exMap.get(mismos[0]).nombre}» por «${e.nombre}»: de ${cat.nombre} solo puedes elegir uno.`);
-      } else {
-        toast(`De ${cat.nombre} puedes elegir hasta ${max} exámenes. Quita uno para agregar otro.`);
-        return;
-      }
-    }
     S.ex.push(id);
   }
+  cambio();
+}
+
+/** Uno más / uno menos de un examen que se puede pedir varias veces (al bajar de 1, se quita). */
+function cambiarCantidad(id, delta) {
+  const e = exMap.get(id);
+  if (!e || !S.ex.includes(id)) return;
+  const n = cant(id) + delta;
+  const max = maxPor(e);
+  if (n < 1) { alternarExamen(id); return; }
+  if (n > max) { toast(`«${e.nombre}» se puede pedir hasta ${max} veces.`); return; }
+  if (n === 1) delete S.cant[id]; else S.cant[id] = n;
   cambio();
 }
 
@@ -405,7 +433,7 @@ async function vaciar() {
     ? '¿Vaciar tu presupuesto? Se quitará lo que elegiste.'
     : `¿Vaciar tu presupuesto? Se quitarán los ${n} exámenes o perfiles que elegiste.`;
   if (!(await confirmar(texto, { ok: 'Vaciar', peligro: true, titulo: 'Vaciar presupuesto' }))) return;
-  S.ex = []; S.pf = [];
+  S.ex = []; S.cant = {}; S.pf = [];
   cambio();
   renderCartBar();
   toast('Presupuesto vacío');
@@ -420,6 +448,8 @@ document.addEventListener('click', (e) => {
     case 'cat': S.catId = id; renderChips(); renderLista(); break;
     case 'tab': S.tab = id; renderLista(); break;
     case 'ex': alternarExamen(id); break;
+    case 'mas': cambiarCantidad(id, 1); break;
+    case 'menos': cambiarCantidad(id, -1); break;
     case 'pf': alternarPerfil(id); break;
     case 'resumen': irA('resumen'); break;
     case 'vaciar': vaciar(); break;
@@ -428,7 +458,7 @@ document.addEventListener('click', (e) => {
     case 'pdf': case 'png': case 'texto': case 'compartir': exportar(act, b); break;
     case 'editar': S.vista = 'resumen'; history.pushState({ v: 'resumen' }, ''); renderVista(); break;
     case 'nuevo':
-      S.ex = []; S.pf = []; S.res = null; S.firma = null; S.origen = '';
+      S.ex = []; S.cant = {}; S.pf = []; S.res = null; S.firma = null; S.origen = '';
       guardarCarro(); localStorage.removeItem(`${K}:res`);
       S.vista = 'catalogo'; history.pushState({ v: 'catalogo' }, ''); renderLista(); renderVista();
       break;

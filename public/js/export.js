@@ -21,7 +21,8 @@ export function buildDoc({ res, negocio, paciente = {} }) {
     paciente: {
       nombre: limpio(paciente.nombre), cedula: limpio(paciente.cedula), telefono: limpio(paciente.telefono), medico: limpio(paciente.medico),
     },
-    items: res.items,
+    // «Biopsia ×3»: la cantidad va en el nombre y el precio es el total de la línea (igual en pantalla, PDF, imagen y texto)
+    items: res.items.map((it) => (it.cantidad > 1 ? { ...it, nombre: `${it.nombre} ×${it.cantidad}` } : it)),
     totalRef: res.total_ref_cent,
     totalBs: res.total_bs_cent,
     tasa: res.tasa,

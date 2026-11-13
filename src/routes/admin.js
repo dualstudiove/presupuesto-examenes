@@ -45,11 +45,11 @@ function rif(v) {
   return s;
 }
 
-/** Máximo de exámenes sueltos por categoría: vacío o 0 = sin límite; 1 = solo uno; hasta 99. */
-function maxExamenes(v) {
-  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return null;
+/** Veces que se puede pedir un mismo examen de la categoría: vacío, 0 o 1 = una sola vez; hasta 99. */
+function maxPorExamen(v) {
+  if (v === null || v === undefined || v === '' || v === 0 || v === '0' || v === 1 || v === '1') return null;
   const n = entero(v);
-  if (n === null || n < 1 || n > 99) throw new HttpError(400, 'El máximo de exámenes debe ser un número entre 1 y 99, o vacío para no tener límite.');
+  if (n === null || n < 2 || n > 99) throw new HttpError(400, 'Las veces que se puede pedir un mismo examen deben ser un número entre 2 y 99.');
   return n;
 }
 
@@ -103,7 +103,7 @@ export function registrarAdmin(r) {
   r.add('GET', '/api/admin/catalogo', A, async ({ negocio }) => {
     const nid = negocio.id;
     const categorias = await db.all(
-      `SELECT c.id, c.nombre, c.orden, c.activo, c.max_examenes, (SELECT COUNT(*) FROM examenes e WHERE e.categoria_id = c.id) AS examenes
+      `SELECT c.id, c.nombre, c.orden, c.activo, c.max_por_examen, (SELECT COUNT(*) FROM examenes e WHERE e.categoria_id = c.id) AS examenes
          FROM categorias c WHERE c.negocio_id = ? ORDER BY c.orden, c.nombre`,
       [nid],
     );
@@ -132,7 +132,7 @@ export function registrarAdmin(r) {
     if (await nombreUnico('categorias', negocio.id, nombre)) throw new HttpError(409, 'Ya existe una categoría con ese nombre.');
     const id = uuid();
     const orden = entero(body.orden) ?? 99;
-    await db.run('INSERT INTO categorias (id, negocio_id, nombre, orden, activo, max_examenes) VALUES (?,?,?,?,1,?)', [id, negocio.id, nombre, orden, maxExamenes(body.max_examenes)]);
+    await db.run('INSERT INTO categorias (id, negocio_id, nombre, orden, activo, max_por_examen) VALUES (?,?,?,?,1,?)', [id, negocio.id, nombre, orden, maxPorExamen(body.max_por_examen)]);
     return { id };
   });
 
@@ -142,9 +142,9 @@ export function registrarAdmin(r) {
     const nombre = body.nombre !== undefined ? str(body.nombre, 80) : c.nombre;
     if (!nombre) throw new HttpError(400, 'El nombre es obligatorio.');
     if (await nombreUnico('categorias', negocio.id, nombre, c.id)) throw new HttpError(409, 'Ya existe una categoría con ese nombre.');
-    await db.run('UPDATE categorias SET nombre = ?, orden = ?, activo = ?, max_examenes = ? WHERE id = ?', [
+    await db.run('UPDATE categorias SET nombre = ?, orden = ?, activo = ?, max_por_examen = ? WHERE id = ?', [
       nombre, body.orden !== undefined ? entero(body.orden) ?? c.orden : c.orden, body.activo !== undefined ? (body.activo ? 1 : 0) : c.activo,
-      body.max_examenes !== undefined ? maxExamenes(body.max_examenes) : c.max_examenes, c.id,
+      body.max_por_examen !== undefined ? maxPorExamen(body.max_por_examen) : c.max_por_examen, c.id,
     ]);
     return { ok: true };
   });

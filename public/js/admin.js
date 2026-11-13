@@ -87,8 +87,8 @@ function confirmarEstado(que, nombre, activo, { off = 'Desactivar', on = 'Activa
     : confirmar(`¿${on} ${que} «${nombre}»? ${efectoOn}`, { ok: on, titulo: `${on} ${que}` });
 }
 
-/** Texto del límite de una categoría para el administrador. */
-const textoLimite = (max) => (!max ? 'Sin límite' : max === 1 ? 'Solo uno' : `Hasta ${max}`);
+/** Cuántas veces se puede pedir un mismo examen de la categoría, en texto. */
+const textoRepetir = (max) => (max > 1 ? `Hasta ${max} veces` : 'Una vez');
 
 // ───────────── Panel (estadísticas) ─────────────
 const D = { preset: '7', desde: '', hasta: '' };
@@ -283,8 +283,8 @@ async function pCategorias(page) {
   const c = await catalogo(true);
   page.innerHTML = `
     <div class="page-head"><h1>Categorías</h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nueva categoría</button></div>
-    <div class="tw"><table class="t"><thead><tr><th>Categoría</th><th>Orden</th><th>Exámenes</th><th>Por presupuesto</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><span class="tag cat-${(c.categorias.indexOf(k) % 5) + 1}">${esc(k.nombre)}</span></td><td data-l="Orden:">${k.orden}</td><td data-l="Exámenes:">${k.examenes}</td><td data-l="Por presupuesto:">${textoLimite(k.max_examenes)}</td><td><button class="badge ${k.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${k.id}" title="Cambiar estado">${k.activo ? 'Activa' : 'Oculta'}</button></td>
+    <div class="tw"><table class="t"><thead><tr><th>Categoría</th><th>Orden</th><th>Exámenes</th><th>Mismo examen</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><span class="tag cat-${(c.categorias.indexOf(k) % 5) + 1}">${esc(k.nombre)}</span></td><td data-l="Orden:">${k.orden}</td><td data-l="Exámenes:">${k.examenes}</td><td data-l="Mismo examen:">${textoRepetir(k.max_por_examen)}</td><td><button class="badge ${k.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${k.id}" title="Cambiar estado">${k.activo ? 'Activa' : 'Oculta'}</button></td>
       <td class="acts"><button class="btn btn-sm" data-e="${k.id}">${icon('edit')} Editar</button> <button class="btn btn-sm btn-danger btn-icon" data-d="${k.id}" aria-label="Eliminar ${esc(k.nombre)}">${icon('trash')}</button></td></tr>`).join('')}
     </tbody></table></div>
     <p class="muted small" style="margin-top:10px">Si ocultas una categoría, sus exámenes dejan de mostrarse a los pacientes.</p>`;
@@ -293,29 +293,29 @@ async function pCategorias(page) {
       titulo: k ? 'Editar categoría' : 'Nueva categoría',
       html: `<div class="field"><label for="n">Nombre</label><input id="n" type="text" maxlength="80" value="${esc(k?.nombre)}"></div>
         <div class="field"><label for="o">Orden</label><input id="o" type="number" value="${k ? k.orden : c.categorias.length}"><span class="hint">Las categorías se muestran de menor a mayor.</span></div>
-        <div class="field"><label for="lm">¿Cuántos exámenes de esta categoría puede elegir el paciente?</label>
-          <div class="row" style="align-items:start"><select id="lm"><option value="0">Varios, sin límite</option><option value="1">Solo uno</option><option value="n">Varios, con un máximo</option></select>
-          <div class="input-unit" id="lmn-w"><input id="lmn" type="number" min="2" max="99" inputmode="numeric" aria-label="Máximo de exámenes" placeholder="Ej.: 3"><span>máx.</span></div></div>
-          <span class="hint">Cuenta los exámenes que el paciente elige sueltos; los que vienen dentro de un perfil no cuentan.</span></div>
+        <div class="field"><label for="lm">¿Se puede pedir el mismo examen más de una vez?</label>
+          <div class="repetir"><select id="lm"><option value="1">No: cada examen una sola vez</option><option value="n">Sí: el mismo examen varias veces</option></select>
+          <div class="input-unit" id="lmn-w"><input id="lmn" type="number" min="2" max="99" inputmode="numeric" aria-label="Máximo de veces por examen" placeholder="3"><span>veces máx.</span></div></div>
+          <span class="hint">Ejemplo: en Patología se pueden pedir 3 biopsias iguales; en Hematología, cada examen una sola vez. Vale para todos los exámenes de la categoría.</span></div>
         <label class="check"><input id="a" type="checkbox" ${k?.activo === 0 ? '' : 'checked'}> Visible para los pacientes</label>`,
       acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, {
         texto: 'Guardar', clase: 'btn-primary',
         onClick: async (cerrar, btn) => {
           if (!$('#n', m.el).value.trim()) return toast('Escribe un nombre.', 'bad');
-          const modo = $('#lm', m.el).value;
-          const max = modo === '0' ? null : modo === '1' ? 1 : Number($('#lmn', m.el).value);
-          if (modo === 'n' && !(max >= 2 && max <= 99)) return toast('Indica un máximo entre 2 y 99.', 'bad');
+          const repite = $('#lm', m.el).value === 'n';
+          const max = repite ? Number($('#lmn', m.el).value) : null;
+          if (repite && !(max >= 2 && max <= 99)) return toast('Indica cuántas veces como máximo: entre 2 y 99.', 'bad');
           await conBoton(btn, async () => {
-            await api(k ? `/api/admin/categorias/${k.id}` : '/api/admin/categorias', { method: k ? 'PUT' : 'POST', body: { nombre: $('#n', m.el).value, orden: Number($('#o', m.el).value), activo: $('#a', m.el).checked, max_examenes: max } });
+            await api(k ? `/api/admin/categorias/${k.id}` : '/api/admin/categorias', { method: k ? 'PUT' : 'POST', body: { nombre: $('#n', m.el).value, orden: Number($('#o', m.el).value), activo: $('#a', m.el).checked, max_por_examen: max } });
             cerrar(); toast('Categoría guardada', 'ok'); await recargar();
           });
         },
       }],
     });
-    // Límite: el número solo aplica a «Varios, con un máximo»
-    const max = k?.max_examenes || 0;
-    $('#lm', m.el).value = !max ? '0' : max === 1 ? '1' : 'n';
-    if (max > 1) $('#lmn', m.el).value = max;
+    // El número de veces solo aplica si el mismo examen se puede repetir
+    const max = k?.max_por_examen || 0;
+    $('#lm', m.el).value = max > 1 ? 'n' : '1';
+    $('#lmn', m.el).value = max > 1 ? max : 3;
     const verNumero = () => { $('#lmn-w', m.el).hidden = $('#lm', m.el).value !== 'n'; };
     $('#lm', m.el).addEventListener('change', () => { verNumero(); if ($('#lm', m.el).value === 'n') $('#lmn', m.el).focus(); });
     verNumero();

@@ -43,7 +43,8 @@ test('la app añade sola las columnas nuevas a una base existente', async () => 
   const cols = async (t) => (await D1.prepare(`PRAGMA table_info(${t})`).all()).results.map((c) => c.name);
   assert.ok((await cols('configuracion_negocio')).includes('rif'));
   assert.ok((await cols('configuracion_negocio')).includes('secuencia_base'));
-  assert.ok((await cols('categorias')).includes('max_examenes'));
+  assert.ok((await cols('categorias')).includes('max_por_examen'));
+  assert.ok((await cols('presupuesto_items')).includes('cantidad'));
 });
 
 test('RIF: se guarda normalizado, sale en la config pública y en el presupuesto', async () => {
@@ -58,30 +59,48 @@ test('RIF: se guarda normalizado, sale en la config pública y en el presupuesto
   assert.equal((await admin('/config')).json.config.rif, null);
 });
 
-test('límite de exámenes por categoría: solo uno, hasta N y sin límite', async () => {
+test('repetir un mismo examen: según su categoría (una vez por defecto, o hasta N veces)', async () => {
   const cat = (await admin('/catalogo')).json;
-  const hormonas = cat.categorias.find((k) => k.nombre === 'Hormonas');
-  const deHormonas = cat.examenes.filter((e) => e.categoria_id === hormonas.id && e.activo).slice(0, 3);
-  assert.equal(deHormonas.length, 3);
-  const pedirTres = () => publico('/presupuesto', { method: 'POST', body: { items: deHormonas.map((e) => ({ tipo: 'examen', id: e.id })) } });
+  const orina = cat.categorias.find((k) => k.nombre === 'Orina');        // permitirá repetir
+  const hema = cat.categorias.find((k) => k.nombre === 'Hematología');   // una sola vez (por defecto)
+  const uro = cat.examenes.find((e) => e.categoria_id === orina.id && e.activo);
+  const hc = cat.examenes.find((e) => e.categoria_id === hema.id && e.activo);
+  const pedirCon = (items) => publico('/presupuesto', { method: 'POST', body: { items } });
 
-  assert.equal((await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: 1 } })).status, 200);
-  assert.equal((await publico('/catalogo')).json.categorias.find((k) => k.id === hormonas.id).max_examenes, 1);
-  const uno = await pedirTres();
-  assert.equal(uno.status, 409);
-  assert.match(uno.json.error, /solo puedes elegir un examen/);
+  // Por defecto, cada examen una sola vez
+  const no = await pedirCon([{ tipo: 'examen', id: uro.id, cantidad: 2 }]);
+  assert.equal(no.status, 409);
+  assert.match(no.json.error, /solo se puede pedir una vez/);
 
-  await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: 2 } });
-  assert.match((await pedirTres()).json.error, /hasta 2 exámenes/);
+  // Orina: hasta 3 veces el mismo examen; Hematología sigue en una
+  assert.equal((await admin(`/categorias/${orina.id}`, { method: 'PUT', body: { max_por_examen: 3 } })).status, 200);
+  assert.equal((await publico('/catalogo')).json.categorias.find((k) => k.id === orina.id).max_por_examen, 3);
+  const ok = await pedirCon([{ tipo: 'examen', id: uro.id, cantidad: 3 }, { tipo: 'examen', id: hc.id }]);
+  assert.equal(ok.status, 200, ok.texto);
+  const linea = ok.json.items.find((i) => i.id === uro.id);
+  assert.equal(linea.cantidad, 3);
+  assert.equal(linea.precio_unit_cent, uro.precio_cent);
+  assert.equal(linea.precio_cent, uro.precio_cent * 3);
+  assert.equal(ok.json.total_ref_cent, uro.precio_cent * 3 + hc.precio_cent);
+  assert.match((await pedirCon([{ tipo: 'examen', id: uro.id, cantidad: 4 }])).json.error, /hasta 3 veces/);
+  assert.equal((await pedirCon([{ tipo: 'examen', id: hc.id, cantidad: 2 }])).status, 409);
 
-  await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: null } });
-  assert.equal((await pedirTres()).status, 200);
-  assert.equal((await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: 500 } })).status, 400);
-  // Al editar otra cosa, el límite no se pierde
-  await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: 3 } });
-  await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { orden: 7 } });
-  assert.equal((await admin('/catalogo')).json.categorias.find((k) => k.id === hormonas.id).max_examenes, 3);
-  await admin(`/categorias/${hormonas.id}`, { method: 'PUT', body: { max_examenes: null } });
+  // Para las estadísticas, cada unidad cuenta
+  const filas = (await D1.prepare("SELECT COUNT(*) AS n FROM presupuesto_examenes pe JOIN presupuestos p ON p.id = pe.presupuesto_id WHERE p.codigo = ? AND pe.examen_id = ?").bind(ok.json.codigo, uro.id).first()).n;
+  assert.equal(filas, 3);
+
+  // Cantidades no válidas, ítems repetidos y perfiles con cantidad
+  assert.equal((await pedirCon([{ tipo: 'examen', id: uro.id, cantidad: 0 }])).status, 400);
+  assert.equal((await pedirCon([{ tipo: 'examen', id: uro.id, cantidad: 1.5 }])).status, 400);
+  assert.equal((await pedirCon([{ tipo: 'examen', id: uro.id }, { tipo: 'examen', id: uro.id }])).status, 409);
+  assert.equal((await pedirCon([{ tipo: 'perfil', id: cat.perfiles[0].id, cantidad: 2 }])).status, 400);
+
+  // Configuración: valores no válidos y que no se pierda al editar otra cosa
+  assert.equal((await admin(`/categorias/${orina.id}`, { method: 'PUT', body: { max_por_examen: 500 } })).status, 400);
+  await admin(`/categorias/${orina.id}`, { method: 'PUT', body: { orden: 9 } });
+  assert.equal((await admin('/catalogo')).json.categorias.find((k) => k.id === orina.id).max_por_examen, 3);
+  await admin(`/categorias/${orina.id}`, { method: 'PUT', body: { max_por_examen: 1 } });
+  assert.equal((await admin('/catalogo')).json.categorias.find((k) => k.id === orina.id).max_por_examen, null);
 });
 
 test('borrar estadísticas hasta una fecha: cuenta, borra y los códigos no se repiten', async () => {

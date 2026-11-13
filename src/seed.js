@@ -19,6 +19,7 @@ import { db, bindD1 } from './db.js';
 import { hashPassword } from './auth.js';
 import { crearNegocio, crearPresupuesto } from './negocio.js';
 import { uuid, nowIso, parteFecha } from './util.js';
+import { asegurarEsquema, COLUMNAS } from './esquema.js';
 
 const centavos = (n) => Math.round(n * 100);
 
@@ -171,6 +172,7 @@ async function generarActividad(negocio, { presupuestos, semilla }) {
 
 /** Siembra sobre la base enlazada con bindD1(). */
 export async function sembrar({ demo = false } = {}) {
+  await asegurarEsquema(); // las columnas que la app añade sola deben existir para sembrar
   const email = (env.superEmail || 'super@plataforma.test').toLowerCase();
   const password = env.superPassword || 'Super12345';
   const hash = await hashPassword(password);
@@ -218,10 +220,13 @@ const literal = (v) => (v === null || v === undefined ? 'NULL'
 
 export async function volcarSql() {
   const out = ['-- Generado por src/seed.js. Para una base vacía.'];
+  // Las columnas de src/esquema.js no van: la base recién migrada aún no las tiene (la app las añade
+  // sola al arrancar) y en los datos sembrados siempre llevan su valor por defecto.
+  const nuevas = new Set(COLUMNAS.map(([t, c]) => `${t}.${c}`));
   for (const t of TABLAS) {
     const filas = await db.all(`SELECT * FROM ${t}`);
     for (const f of filas) {
-      const cols = Object.keys(f);
+      const cols = Object.keys(f).filter((c) => !nuevas.has(`${t}.${c}`));
       out.push(`INSERT INTO ${t} (${cols.join(', ')}) VALUES (${cols.map((c) => literal(f[c])).join(', ')});`);
     }
   }

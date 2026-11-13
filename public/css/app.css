@@ -330,12 +330,22 @@ main.patient { padding-top: 16px; padding-bottom: 110px; }
 .price { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: -.01em; white-space: nowrap; }
 .item .side .btn { min-width: 100px; }
 .item .side .btn::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+.item .side .contador .btn::after { content: none; }
 .item .side .badge.ok { white-space: normal; text-align: left; }
 .item details { position: relative; z-index: 1; grid-column: 1 / -1; font-size: 13px; border-top: 1px solid var(--line-2); padding-top: 4px; }
 .item summary { cursor: pointer; color: var(--accent); font-weight: 500; min-height: 30px; display: flex; align-items: center; }
 .item ul { margin: 4px 0 4px; padding-left: 18px; columns: 2; column-gap: 20px; color: var(--ink-2); }
 @media (max-width: 480px) { .item ul { columns: 1; } .item .side .btn { min-width: 0; } }
 #lista > .empty { margin-top: 6px; }
+.price small { font-family: var(--font-body); font-size: 12px; font-weight: 500; color: var(--ink-3); }
+/* Contador − n + (exámenes que se pueden pedir varias veces) */
+.contador { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent-bg); padding: 2px; position: relative; z-index: 1; }
+.contador .btn { border: 0; background: transparent; color: var(--accent); font-size: 18px; font-weight: 600; }
+.contador .btn:hover:not(:disabled) { background: var(--surface); }
+.contador .btn:disabled { opacity: .35; }
+.contador span { min-width: 26px; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 16px; color: var(--accent); }
+.lines .line.con-contador .contador { border-color: var(--line); background: var(--surface-2); }
+.lines .line.con-contador .contador .btn, .lines .line.con-contador .contador span { color: var(--ink); }
 
 /* Barra inferior del presupuesto */
 /* Barras inferiores fijas: carrito (catálogo) y «Generar presupuesto» (resumen) */
@@ -437,6 +447,10 @@ details.card > summary { font-weight: 600; }
 .picklist { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 4px 12px 8px; }
 .picklist h4 { margin: 12px 0 2px; font-family: var(--font-body); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; color: var(--ink-3); }
 .logo-prev { width: 84px; height: 84px; border: 1px dashed var(--line); border-radius: 12px; display: grid; place-items: center; overflow: hidden; background: var(--surface-2); color: var(--ink-3); font-size: 12px; text-align: center; flex: none; }
+.repetir { display: flex; flex-wrap: wrap; gap: 8px; }
+.repetir select { flex: 1 1 240px; }
+.repetir .input-unit { flex: 0 1 160px; }
+.repetir .input-unit input { padding-right: 92px; }
 .enlace { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .enlace code { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
 .zona-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }

@@ -24,6 +24,9 @@ export function bindD1(binding) {
   d1 = binding;
 }
 
+/** El binding D1 enlazado ahora mismo (sirve de clave para recordar qué base ya se revisó). */
+export const d1Actual = () => d1;
+
 const norm = (p = []) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
 const stmt = (sql, p) => {
   if (!d1) throw new Error('La base de datos no está enlazada.');
