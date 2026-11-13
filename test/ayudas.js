@@ -21,9 +21,10 @@ const ASSETS = {
   },
 };
 
-export async function crearEntorno(extra = {}) {
+/** vacia: true → base sin tablas (como una base D1 recién creada), para probar que la app las crea sola. */
+export async function crearEntorno(extra = {}, { vacia = false } = {}) {
   const d1 = crearD1Local(':memory:');
-  await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
+  if (!vacia) await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
   return { DB: d1, ASSETS, SESSION_SECRET: 'test-secret-test-secret-test-secret-1234', BCV_DISABLED: 'true', ...extra };
 }
 

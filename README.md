@@ -71,7 +71,14 @@ Desde el panel general (tarjeta **Tu cuenta**) el superadministrador cambia su c
 
 Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Dominios al publicar; no hace falta añadirlas a mano.
 
-**Probar antes de publicar:** se trabaja en la rama `desarrollo`. Con las compilaciones de vista previa activadas en el Worker `cotizalo` (Configuración → Compilación → *Base de vistas previas*, comando `npx wrangler versions upload`, que reutiliza los secretos del Worker; no `npx wrangler preview`, que usa secretos aparte) y la dirección «Vista previa» encendida en Dominios, cada cambio en `desarrollo` crea una versión de prueba en `desarrollo-cotizalo.<cuenta>.workers.dev/cotizalo`, sin tocar `dualstudio.app`. **Usa la misma base de datos que la app publicada:** prueba dentro de un negocio de pruebas (créalo desde `/cotizalo/super`) y no uses «Borrar datos» en negocios reales. Cuando todo esté bien, se une `desarrollo` en `master` y se publica.
+**Probar antes de publicar (sitio de pruebas):** se trabaja en la rama `desarrollo`. Cada cambio ahí lo publica Cloudflare como *vista previa* (Configuración → Compilación → *Base de vistas previas*, comando `npx wrangler preview`) en una dirección `*-cotizalo.<cuenta>.workers.dev/cotizalo`, sin tocar `dualstudio.app`. El sitio de pruebas usa **su propia base de datos** (`presupuesto-pruebas`, bloque `previews` de `wrangler.jsonc`): nunca toca los datos reales. La app crea sola las tablas la primera vez.
+
+Preparación (una sola vez):
+1. Cloudflare → Almacenamiento y bases de datos → D1 → crear la base `presupuesto-pruebas`, y poner su ID en `previews.d1_databases[0].database_id` de `wrangler.jsonc`.
+2. En *Base de vistas previas* → Variables y secretos, tres **secretos**: `SESSION_SECRET` (texto largo al azar), `SUPER_EMAIL` y `SUPER_PASSWORD` (el superadministrador del sitio de pruebas, que la app crea sola). No van en el código.
+3. Entrar al sitio de pruebas con ese correo, crear un negocio de prueba desde el panel y probar ahí.
+
+Cuando todo esté bien, se une `desarrollo` en `master` y se publica en `dualstudio.app`.
 
 Si una compilación falla con «The name in your wrangler.jsonc file (cotizalo) must match the name of your Worker», la conexión con GitHub quedó con un nombre viejo (pasa al renombrar el Worker): en Configuración → Compilación, desconecta y vuelve a conectar el repositorio, y repite los comandos de producción y de vista previa.
 

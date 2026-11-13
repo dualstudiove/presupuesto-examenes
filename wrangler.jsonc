@@ -53,8 +53,30 @@
   // Sin dirección *.workers.dev: la única dirección es la del dominio. (Con "routes", Cloudflare la apaga
   // igualmente; aquí queda explícito. Ponla en true si algún día la necesitas para pruebas.)
   "workers_dev": false,
-  // Versiones de prueba: cada cambio en una rama que no es master (p. ej. desarrollo) crea una versión
-  // con su propia dirección <rama>-cotizalo.<cuenta>.workers.dev, sin tocar dualstudio.app.
-  // OJO: usa la MISMA base de datos que la app publicada; prueba en un negocio de pruebas.
-  "preview_urls": true
+  "preview_urls": true,
+
+  // ── Sitio de pruebas (Cloudflare «Previews») ──
+  // Cada cambio en una rama que no es master (p. ej. desarrollo) se publica como versión de prueba,
+  // con su propia dirección *-cotizalo.<cuenta>.workers.dev, sin tocar dualstudio.app.
+  // Usa una base de datos APARTE (presupuesto-pruebas): las pruebas nunca tocan los datos reales.
+  // La app crea sola las tablas en esa base vacía. Las claves NO van aquí: son secretos de las vistas
+  // previas en Cloudflare (SESSION_SECRET, SUPER_EMAIL, SUPER_PASSWORD); ver README.
+  "previews": {
+    "vars": {
+      "BASE_PATH": "/cotizalo",
+      "ENVIRONMENT": "production",
+      "TZ_OFFSET_MIN": "-240",
+      "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",
+      "BCV_STALE_HOURS": "36",
+      "BCV_DISABLED": "false"
+    },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "presupuesto-pruebas",
+        "database_id": "PEGA_AQUI_EL_ID_DE_LA_BASE_DE_PRUEBAS",
+        "migrations_dir": "migrations"
+      }
+    ]
+  }
 }
