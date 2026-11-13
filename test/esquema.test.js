@@ -24,7 +24,7 @@ async function pedir(path, { method = 'GET', body } = {}) {
 }
 
 before(async () => {
-  const bindings = await crearEntorno({ BASE_PATH: '/cotizalo', SUPER_EMAIL: 'pruebas@dualstudio.app', SUPER_PASSWORD: 'ClaveDePrueba123' }, { vacia: true });
+  const bindings = await crearEntorno({ BASE_PATH: '/cotizalo', SUPER_EMAIL: 'pruebas@dualstudio.app', SUPER_PASSWORD: 'ClaveDePrueba123', DATOS_DE_EJEMPLO: 'true' }, { vacia: true });
   D1 = bindings.DB;
   const worker = (await import('../src/server.js')).default;
   ({ server, port } = await levantar(worker, bindings));
@@ -53,4 +53,37 @@ test('en la base nueva se crea un negocio y su app funciona', async () => {
   assert.equal(cat.status, 200);
   assert.ok(cat.json.categorias.length > 0, 'trae las categorías base');
   assert.equal((await pedir('/cotizalo/pruebas')).status, 200);
+});
+
+test('negocio de ejemplo: se crea por pasos con catálogo, perfiles, Patología repetible y actividad', async () => {
+  assert.equal((await pedir('/cotizalo/api/super/me')).json.ejemplo, true);
+  let paso = { paso: 'negocio' };
+  let ultimo;
+  let pasos = 0;
+  while (paso) {
+    const r = await pedir('/cotizalo/api/super/ejemplo', { method: 'POST', body: paso });
+    assert.equal(r.status, 200, r.texto);
+    ultimo = r.json;
+    paso = r.json.siguiente;
+    pasos += 1;
+    assert.ok(pasos <= 200, 'termina');
+  }
+  assert.equal(ultimo.hecho, ultimo.total);
+  assert.equal(pasos, ultimo.total);
+  const slug = ultimo.negocio.slug;
+  assert.equal(slug, 'ejemplo');
+  const cat = (await pedir(`/cotizalo/${slug}/api/publico/catalogo`)).json;
+  assert.ok(cat.examenes.length >= 30);
+  assert.equal(cat.perfiles.length, 4);
+  assert.equal(cat.categorias.find((c) => c.nombre === 'Patología').max_por_examen, 3);
+  const cfg = (await pedir(`/cotizalo/${slug}/api/publico/config`)).json;
+  assert.equal(cfg.negocio.rif, 'J-00000000-0');
+  const hasta = new Date(Date.now() - 4 * 3600_000).toISOString().slice(0, 10);
+  const desde = new Date(Date.now() - 40 * 86400_000).toISOString().slice(0, 10);
+  const d = (await pedir(`/cotizalo/${slug}/api/admin/dashboard?desde=${desde}&hasta=${hasta}`)).json;
+  assert.ok(d.resumen.presupuestos >= 50, `presupuestos: ${d.resumen.presupuestos}`);
+  assert.ok(d.resumen.visitas > 0);
+  // Un segundo negocio de ejemplo toma otra dirección
+  const otro = await pedir('/cotizalo/api/super/ejemplo', { method: 'POST', body: { paso: 'negocio' } });
+  assert.equal(otro.json.negocio.slug, 'ejemplo-2');
 });

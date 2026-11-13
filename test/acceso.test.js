@@ -133,3 +133,10 @@ test('el administrador de un negocio suspendido recibe un aviso claro', async ()
     await pedir(`/cotizalo/api/super/negocios/${norte.id}`, { method: 'PUT', body: { activo: true }, jar: sup });
   }
 });
+
+test('el negocio de ejemplo no existe fuera del sitio de pruebas', async () => {
+  const jar = {};
+  await login('super@plataforma.test', 'Super12345', jar);
+  assert.equal((await pedir('/cotizalo/api/super/me', { jar })).json.ejemplo, false);
+  assert.equal((await pedir('/cotizalo/api/super/ejemplo', { method: 'POST', body: { paso: 'negocio' }, jar })).status, 403);
+});

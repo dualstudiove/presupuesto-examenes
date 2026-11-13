@@ -43,6 +43,11 @@ async function pintar(yo) {
         <div class="input-unit" style="width:200px"><input id="tm" type="text" inputmode="decimal" placeholder="Tasa manual" aria-label="Tasa manual"><span>Bs.</span></div><button class="btn" id="gm">Guardar tasa manual</button></div>
       <p class="muted xs" style="margin-top:8px">La tasa manual sirve de respaldo si la fuente automática falla; la próxima consulta exitosa la reemplaza.</p></div>
 
+    ${yo.ejemplo ? `<div class="card ejemplo" style="margin-top:12px;max-width:760px"><h3>Datos de ejemplo <span class="muted small">(solo en el sitio de pruebas)</span></h3>
+      <p class="small">Crea un «Laboratorio de Ejemplo» con catálogo, perfiles, una categoría Patología donde el mismo examen se puede pedir hasta 3 veces, y un mes de presupuestos y visitas inventados para que el panel tenga estadísticas.</p>
+      <div id="ej-prog" hidden><div class="bar"><i id="ej-bar" style="width:0%"></i></div><p class="muted xs" id="ej-txt" style="margin-top:6px"></p></div>
+      <button class="btn btn-soft" id="ej">${icon('plus')} Crear negocio de ejemplo</button></div>` : ''}
+
     <div class="card" style="margin-top:12px;max-width:760px"><h3>Tu cuenta</h3>
       <p class="muted small">Entras como <b>${esc(yo.email)}</b>.</p>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>
@@ -57,6 +62,28 @@ async function pintar(yo) {
     if (r.ok) toast(`Tasa actualizada: ${fmtTasa(r.valor)} Bs.`, 'ok'); else toast(`No se pudo consultar: ${r.error}`, 'bad');
     boot();
   }));
+  $('#ej')?.addEventListener('click', async (ev) => {
+    const b = ev.currentTarget;
+    b.disabled = true;
+    $('#ej-prog').hidden = false;
+    // Se crea por pasos (Cloudflare limita las consultas por petición): cada respuesta dice cuál sigue.
+    let paso = { paso: 'negocio' };
+    let negocio = null;
+    try {
+      while (paso) {
+        const r = await api('/api/super/ejemplo', { method: 'POST', body: paso });
+        negocio = r.negocio;
+        $('#ej-bar').style.width = `${Math.round((r.hecho / r.total) * 100)}%`;
+        $('#ej-txt').textContent = `Creando «${negocio.nombre}»… ${r.hecho} de ${r.total}`;
+        paso = r.siguiente;
+      }
+      toast(`Listo: ${negocio.nombre} en ${dirNegocio(negocio.slug)}`, 'ok');
+      boot();
+    } catch (e) {
+      toast(`No se pudo terminar: ${e.message}`, 'bad');
+      b.disabled = false;
+    }
+  });
   $('#fpw').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     await conBoton($('button', ev.target), async () => {

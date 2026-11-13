@@ -76,7 +76,7 @@ Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Domini
 Preparación (una sola vez):
 1. Cloudflare → Almacenamiento y bases de datos → D1 → crear la base `presupuesto-pruebas`, y poner su ID en `previews.d1_databases[0].database_id` de `wrangler.jsonc`.
 2. En *Base de vistas previas* → Variables y secretos, tres **secretos**: `SESSION_SECRET` (texto largo al azar), `SUPER_EMAIL` y `SUPER_PASSWORD` (el superadministrador del sitio de pruebas, que la app crea sola). No van en el código.
-3. Entrar al sitio de pruebas con ese correo, crear un negocio de prueba desde el panel y probar ahí.
+3. Entrar al sitio de pruebas con ese correo y pulsar **«Crear negocio de ejemplo»** en el panel general (solo aparece ahí, por `DATOS_DE_EJEMPLO = "true"` en `previews.vars`): crea un laboratorio con catálogo, perfiles, una categoría Patología donde el mismo examen se repite hasta 3 veces, y un mes de presupuestos y visitas inventados. Se crea por pasos, con barra de progreso, para no pasar los límites de consultas de Cloudflare por petición.
 
 Cuando todo esté bien, se une `desarrollo` en `master` y se publica en `dualstudio.app`.
 

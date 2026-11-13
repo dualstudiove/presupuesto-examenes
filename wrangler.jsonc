@@ -68,7 +68,9 @@
       "TZ_OFFSET_MIN": "-240",
       "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",
       "BCV_STALE_HOURS": "36",
-      "BCV_DISABLED": "false"
+      "BCV_DISABLED": "false",
+      // Botón «Crear negocio de ejemplo» en el panel del superadministrador (solo aquí, nunca en producción)
+      "DATOS_DE_EJEMPLO": "true"
     },
     "d1_databases": [
       {

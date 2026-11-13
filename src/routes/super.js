@@ -6,6 +6,7 @@ import {
   bloqueoRestante, registrarFallo, limpiarFallos, limite,
 } from '../auth.js';
 import { crearNegocio, invalidarNegocios } from '../negocio.js';
+import { pasoEjemplo } from '../ejemplo.js';
 import { estadoConsulta, guardarTasaManualGlobal, refrescarTasa, tasaGlobal } from '../bcv.js';
 import { HttpError, uuid, nowIso, str, esColor, esEmail, validarPassword } from '../util.js';
 
@@ -76,6 +77,12 @@ export function registrarSuper(r) {
     return { ok: true };
   });
 
+  // Negocio de ejemplo, por pasos (solo en el sitio de pruebas: DATOS_DE_EJEMPLO = "true").
+  r.add('POST', '/api/super/ejemplo', S, async ({ body }) => {
+    if (!env.datosEjemplo) throw new HttpError(403, 'Los datos de ejemplo solo están disponibles en el sitio de pruebas.');
+    return pasoEjemplo({ paso: body.paso, negocio_id: body.negocio_id, i: body.i });
+  });
+
   r.add('POST', '/api/super/password', S, async ({ usuario, body, setCookies }) => {
     if (!(await verifyPassword(String(body.actual || ''), usuario.password_hash))) throw new HttpError(400, 'La contraseña actual no es correcta.');
     const hash = await hashPassword(validarPassword(body.nueva));
@@ -84,7 +91,7 @@ export function registrarSuper(r) {
     return { ok: true };
   });
 
-  r.add('GET', '/api/super/me', S, async ({ usuario }) => ({ email: usuario.email, base_path: env.basePath }));
+  r.add('GET', '/api/super/me', S, async ({ usuario }) => ({ email: usuario.email, base_path: env.basePath, ejemplo: env.datosEjemplo }));
 
   r.add('GET', '/api/super/negocios', S, async () => {
     const negocios = await db.all(

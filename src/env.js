@@ -16,6 +16,7 @@ export const env = {
   cronSecret: '',
   superEmail: '',
   superPassword: '',
+  datosEjemplo: false, // botón «Crear negocio de ejemplo» (solo en el sitio de pruebas)
 };
 
 /** '/cotizalo/' | 'cotizalo' | '/' | '' → '/cotizalo' o '' (sin barra final). */
@@ -39,6 +40,7 @@ export function configurarEnv(b = {}) {
   env.cronSecret = b.CRON_SECRET || '';
   env.superEmail = b.SUPER_EMAIL || '';
   env.superPassword = b.SUPER_PASSWORD || '';
+  env.datosEjemplo = bool(b.DATOS_DE_EJEMPLO, false);
   if (!env.sessionSecret) {
     if (env.production) throw new Error('Falta el secreto SESSION_SECRET. Agrégalo en Cloudflare (en el Worker: Configuración → Variables y secretos; en el sitio de pruebas: los secretos de las vistas previas) o con: wrangler secret put SESSION_SECRET.');
     env.sessionSecret = 'solo-desarrollo-no-usar-en-produccion-0123456789';
