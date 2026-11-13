@@ -131,6 +131,40 @@ export function registrarSuper(r) {
     return { ok: true };
   });
 
+  // Eliminar un negocio y TODOS sus datos. Hay que escribir su nombre exacto y la contraseña del superadministrador.
+  r.add('DELETE', '/api/super/negocios/:id', S, async ({ params, body, usuario, ip }) => {
+    const n = await db.get('SELECT id, slug, nombre FROM negocios WHERE id = ?', [params.id]);
+    if (!n) throw new HttpError(404, 'El negocio no existe.');
+    if (String(body.nombre ?? '').trim() !== n.nombre.trim()) throw new HttpError(400, 'El nombre escrito no coincide con el del negocio.');
+    const key = `del|${usuario.id}|${ip}`;
+    const espera = bloqueoRestante(key);
+    if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
+    if (!(await verifyPassword(String(body.password || '').slice(0, 200), usuario.password_hash))) {
+      registrarFallo(key);
+      throw new HttpError(400, 'La contraseña no es correcta.');
+    }
+    limpiarFallos(key);
+    // Todo en un solo lote (o se borra todo o nada), de los datos que dependen de otros hacia el negocio.
+    await db.tx(async (t) => {
+      await t.run('DELETE FROM presupuesto_examenes WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM presupuesto_items WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM presupuestos WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM visitas WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM perfil_examenes WHERE perfil_id IN (SELECT id FROM perfiles WHERE negocio_id = ?)', [n.id]);
+      await t.run('DELETE FROM perfil_examenes WHERE examen_id IN (SELECT id FROM examenes WHERE negocio_id = ?)', [n.id]);
+      await t.run('DELETE FROM perfiles WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM examenes WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM categorias WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM origenes WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM usuarios_admin WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM configuracion_negocio WHERE negocio_id = ?', [n.id]);
+      await t.run('DELETE FROM negocios WHERE id = ?', [n.id]);
+    });
+    invalidarNegocios();
+    console.log(`[super] Negocio eliminado: ${n.nombre} (${n.slug}) por ${usuario.email}`);
+    return { ok: true, slug: n.slug };
+  });
+
   // Crea el administrador o restablece su contraseña.
   r.add('POST', '/api/super/negocios/:id/admin', S, async ({ params, body }) => {
     const n = await db.get('SELECT id FROM negocios WHERE id = ?', [params.id]);

@@ -33,7 +33,7 @@ async function pintar(yo) {
       <td class="small adms">${n.admins.map((a) => esc(a.email)).join('<br>') || '<span class="muted">—</span>'}</td>
       <td class="right" data-l="Exámenes:">${n.examenes}</td><td class="right" data-l="Presupuestos:">${n.presupuestos}</td>
       <td><button class="badge ${n.activo ? 'ok' : 'bad'}" style="cursor:pointer;border:0" data-t="${n.id}">${n.activo ? 'Activo' : 'Suspendido'}</button></td>
-      <td class="acts"><a class="btn btn-sm btn-soft" href="${esc(urlNegocio(n.slug))}/admin" title="Entrar al panel de ${esc(n.nombre)}">Abrir panel</a> <button class="btn btn-sm" data-a="${n.id}" title="Crear administrador o cambiar su contraseña">Credenciales</button></td></tr>`).join('')}
+      <td class="acts"><a class="btn btn-sm btn-soft" href="${esc(urlNegocio(n.slug))}/admin" title="Entrar al panel de ${esc(n.nombre)}">Abrir panel</a> <button class="btn btn-sm" data-a="${n.id}" title="Crear administrador o cambiar su contraseña">Credenciales</button> <button class="btn btn-sm btn-danger btn-icon" data-x="${n.id}" aria-label="Eliminar ${esc(n.nombre)}" title="Eliminar negocio">${icon('trash')}</button></td></tr>`).join('')}
     </tbody></table></div>
 
     <div class="card" style="margin-top:20px;max-width:760px"><h3>Tasa BCV (para todos los negocios)</h3>
@@ -110,6 +110,7 @@ async function pintar(yo) {
       await conBoton(b, async () => { await api(`/api/super/negocios/${n.id}`, { method: 'PUT', body: { activo: !n.activo } }); toast(n.activo ? 'Negocio suspendido' : 'Negocio activado', 'ok'); boot(); });
     }
     if (b.dataset.a) formAdmin(lista.negocios.find((x) => x.id === b.dataset.a));
+    if (b.dataset.x) eliminarNegocio(lista.negocios.find((x) => x.id === b.dataset.x));
   });
 }
 
@@ -130,6 +131,32 @@ function formNegocio() {
       },
     }],
   });
+}
+
+/** Eliminar un negocio: hay que escribir su nombre exacto y la contraseña del superadministrador. */
+function eliminarNegocio(n) {
+  const m = modal({
+    titulo: 'Eliminar negocio',
+    html: `<div class="notice bad" style="margin-bottom:14px">${icon('warn')}<div>Se borrará <b>${esc(n.nombre)}</b> con <b>todos</b> sus datos: catálogo, precios, configuración, administradores, ${n.presupuestos} presupuesto(s) y sus estadísticas. Su dirección <b>${esc(dirNegocio(n.slug))}</b> dejará de funcionar. <b>No se puede deshacer.</b></div></div>
+      <div class="field"><label for="xn">Para confirmar, escribe el nombre del negocio: <b>${esc(n.nombre)}</b></label><input id="xn" type="text" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="xp">Tu contraseña de superadministrador</label><input id="xp" type="password" autocomplete="current-password"></div>`,
+    acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, {
+      texto: 'Eliminar definitivamente', clase: 'btn-danger solid',
+      onClick: async (cerrar, btn) => {
+        await conBoton(btn, async () => {
+          await api(`/api/super/negocios/${n.id}`, { method: 'DELETE', body: { nombre: $('#xn', m.el).value, password: $('#xp', m.el).value } });
+          cerrar(); toast(`«${n.nombre}» eliminado`, 'ok'); boot();
+        });
+        listo();
+      },
+    }],
+  });
+  // El botón final solo se activa cuando el nombre coincide y hay contraseña.
+  const boton = m.el.querySelector('.acts .btn-danger');
+  const listo = () => { if (boton.isConnected) boton.disabled = $('#xn', m.el).value.trim() !== n.nombre.trim() || !$('#xp', m.el).value; };
+  m.el.addEventListener('input', listo);
+  listo();
+  $('#xn', m.el).focus();
 }
 
 function formAdmin(n) {
