@@ -40,7 +40,7 @@ export function configurarEnv(b = {}) {
   env.superEmail = b.SUPER_EMAIL || '';
   env.superPassword = b.SUPER_PASSWORD || '';
   if (!env.sessionSecret) {
-    if (env.production) throw new Error('Falta SESSION_SECRET (ejecuta: wrangler secret put SESSION_SECRET).');
+    if (env.production) throw new Error('Falta el secreto SESSION_SECRET. Agrégalo en Cloudflare (en el Worker: Configuración → Variables y secretos; en el sitio de pruebas: los secretos de las vistas previas) o con: wrangler secret put SESSION_SECRET.');
     env.sessionSecret = 'solo-desarrollo-no-usar-en-produccion-0123456789';
   }
   return env;

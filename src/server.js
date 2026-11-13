@@ -217,8 +217,18 @@ app.onError((e, c) => {
  * Lo que queda fuera de la base no es de esta app: la raíz del dominio redirige a la base
  * (útil en *.workers.dev; en dualstudio.app esas rutas las atiende la página central).
  */
+/** Si falta configuración (p. ej. el secreto SESSION_SECRET), se dice cuál en vez del error genérico 1101 de Cloudflare. */
+function faltaConfiguracion(e) {
+  console.error('[config]', e?.message || e);
+  const msg = String(e?.message || 'Error de configuración.').replace(/[<>&]/g, '');
+  return new Response(
+    `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Falta configuración</title></head><body style="font-family:system-ui,sans-serif;max-width:560px;margin:10vh auto;padding:0 16px;line-height:1.5"><h1 style="font-size:22px">La app no está configurada</h1><p>${msg}</p></body></html>`,
+    { status: 500, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } },
+  );
+}
+
 function montar(request, bindings, ctx) {
-  configurarEnv(bindings);
+  try { configurarEnv(bindings); } catch (e) { return faltaConfiguracion(e); }
   const base = env.basePath;
   if (!base) return app.fetch(request, bindings, ctx);
   const url = new URL(request.url);
