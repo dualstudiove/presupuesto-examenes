@@ -397,7 +397,7 @@ async function pConfig(page) {
       <button class="btn btn-primary btn-lg" type="submit" style="max-width:320px">Guardar cambios</button>
     </form>
 
-    <div class="card" style="max-width:760px;margin-top:20px"><h3>¿Cómo se enteró de nosotros?</h3><p class="muted small">Opciones que verá el paciente, en este orden (usa las flechas para cambiarlo). Sirven para las estadísticas de origen. Si eliges la opción llamada «Otro», se le pide que escriba dónde fue; lo verás en el Panel.</p>
+    <div class="card" style="max-width:760px;margin-top:20px"><h3>¿Cómo se enteró de nosotros?</h3><p class="muted small">Opciones que verá el paciente, en este orden (arrástralas desde ⋮⋮ o usa las flechas para cambiarlo). Sirven para las estadísticas de origen. Si eliges la opción llamada «Otro», se le pide que escriba dónde fue; lo verás en el Panel.</p>
       <div id="ol"></div>
       <div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="on" maxlength="80" placeholder="Nueva opción (ej.: Volante, TikTok…)" aria-label="Nueva opción"><button class="btn btn-soft" id="oa" style="flex:none">${icon('plus')} Agregar</button></div></div>
 
@@ -419,12 +419,50 @@ async function pConfig(page) {
         <button class="btn" type="submit">Cambiar contraseña</button></form></div>`}`;
 
   const pintarOrigenes = (lista) => {
-    $('#ol').innerHTML = lista.length ? lista.map((o, i) => `<div class="origen-fila"><span class="mover"><button type="button" class="btn btn-sm btn-icon btn-ghost" data-sube="${o.id}" aria-label="Subir ${esc(o.nombre)}" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn btn-sm btn-icon btn-ghost" data-baja="${o.id}" aria-label="Bajar ${esc(o.nombre)}" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></span><span style="flex:1;min-width:0" class="${o.activo ? '' : 'muted'}">${esc(o.nombre)}${o.activo ? '' : ' (oculta)'}</span>
+    $('#ol').innerHTML = lista.length ? lista.map((o, i) => `<div class="origen-fila" data-id="${o.id}"><span class="asa" title="Arrastra para cambiar el orden" aria-hidden="true">${icon('asa')}</span><span class="mover"><button type="button" class="btn btn-sm btn-icon btn-ghost" data-sube="${o.id}" aria-label="Subir ${esc(o.nombre)}" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn btn-sm btn-icon btn-ghost" data-baja="${o.id}" aria-label="Bajar ${esc(o.nombre)}" ${i === lista.length - 1 ? 'disabled' : ''}>↓</button></span><span class="nom ${o.activo ? '' : 'muted'}">${esc(o.nombre)}${o.activo ? '' : ' (oculta)'}</span>
       <button type="button" class="btn btn-sm" data-r="${o.id}">Renombrar</button><button type="button" class="btn btn-sm" data-v="${o.id}">${o.activo ? 'Ocultar' : 'Mostrar'}</button><button type="button" class="btn btn-sm btn-danger btn-icon" data-x="${o.id}" aria-label="Eliminar ${esc(o.nombre)}">${icon('trash')}</button></div>`).join('') : '<p class="muted small">No hay opciones.</p>';
   };
   let ors = origenes;
   const refrescarOrigenes = async () => { ors = (await api('/api/admin/config')).origenes; pintarOrigenes(ors); };
   pintarOrigenes(ors);
+
+  // Reordenar arrastrando desde el asa (⋮⋮), con ratón o con el dedo. Las flechas siguen para el teclado.
+  const guardarOrden = async (ids) => {
+    if (ids.join() === ors.map((x) => x.id).join()) return;
+    try { await api('/api/admin/origenes/orden', { method: 'POST', body: { ids } }); toast('Orden guardado', 'ok'); } catch (e) { toast(e.message, 'bad'); }
+    await refrescarOrigenes();
+  };
+  $('#ol').addEventListener('pointerdown', (ev) => {
+    const asa = ev.target.closest('.asa');
+    if (!asa || ev.button > 0) return;
+    ev.preventDefault();
+    const fila = asa.closest('.origen-fila');
+    const lista = $('#ol');
+    // Se escucha en toda la página: mover la fila en la lista hace que el navegador suelte el «agarre» del asa.
+    const id = ev.pointerId;
+    fila.classList.add('arrastrando');
+    lista.classList.add('ordenando');
+    const mover = (e) => {
+      if (e.pointerId !== id) return;
+      e.preventDefault();
+      // La fila va antes de la primera fila cuyo centro quede por debajo del puntero
+      const otras = [...lista.querySelectorAll('.origen-fila:not(.arrastrando)')];
+      const antes = otras.find((f) => { const r = f.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      if (antes) { if (fila.nextElementSibling !== antes) lista.insertBefore(fila, antes); } else if (lista.lastElementChild !== fila) lista.appendChild(fila);
+    };
+    const soltar = (e) => {
+      if (e.pointerId !== id) return;
+      window.removeEventListener('pointermove', mover);
+      window.removeEventListener('pointerup', soltar);
+      window.removeEventListener('pointercancel', soltar);
+      fila.classList.remove('arrastrando');
+      lista.classList.remove('ordenando');
+      guardarOrden([...lista.querySelectorAll('.origen-fila')].map((f) => f.dataset.id));
+    };
+    window.addEventListener('pointermove', mover, { passive: false });
+    window.addEventListener('pointerup', soltar);
+    window.addEventListener('pointercancel', soltar);
+  });
   $('#oa').addEventListener('click', async (ev) => { const v = $('#on').value.trim(); if (!v) return; await conBoton(ev.currentTarget, async () => { await api('/api/admin/origenes', { method: 'POST', body: { nombre: v } }); $('#on').value = ''; await refrescarOrigenes(); }); });
   $('#ol').addEventListener('click', async (ev) => {
     const b = ev.target.closest('button');

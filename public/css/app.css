@@ -468,8 +468,18 @@ details.card > summary { font-weight: 600; }
 .repetir select { flex: 1 1 240px; }
 .repetir .input-unit { flex: 0 1 160px; }
 .repetir .input-unit input { padding-right: 92px; }
-.origen-fila { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+.origen-fila { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+/* El nombre ocupa lo que quede; si no caben los botones, bajan a otra línea (a la derecha) */
+.origen-fila .nom { flex: 1 1 150px; min-width: 0; overflow-wrap: anywhere; }
+.origen-fila .nom + .btn { margin-left: auto; }
 .origen-fila .mover { display: inline-flex; gap: 2px; flex: none; }
+/* Asa para arrastrar (ratón y dedo: touch-action none evita que la página se desplace al arrastrar) */
+.origen-fila .asa { flex: none; display: grid; place-items: center; width: 28px; height: 34px; margin-left: -6px; border-radius: 6px; color: var(--ink-3); cursor: grab; touch-action: none; user-select: none; }
+.origen-fila .asa:hover { background: var(--line-2); color: var(--ink); }
+.origen-fila.arrastrando { background: var(--accent-bg); border-radius: 8px; box-shadow: var(--shadow-pop); position: relative; z-index: 1; }
+.origen-fila.arrastrando .asa { cursor: grabbing; color: var(--accent); }
+#ol.ordenando, #ol.ordenando * { cursor: grabbing !important; user-select: none; }
+@media (pointer: coarse) { .origen-fila .asa { width: 36px; height: 40px; } }
 .origen-fila .mover .btn:disabled { opacity: .25; }
 .detalles-otro { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-2); }
 .detalles-otro ul { list-style: none; margin: 6px 0 0; padding: 0; }
