@@ -74,7 +74,7 @@
       {
         "binding": "DB",
         "database_name": "presupuesto-pruebas",
-        "database_id": "PEGA_AQUI_EL_ID_DE_LA_BASE_DE_PRUEBAS",
+        "database_id": "12a3b294-0f88-4505-9a0d-f9dda1aade9c",
         "migrations_dir": "migrations"
       }
     ]
