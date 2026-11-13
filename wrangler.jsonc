@@ -29,7 +29,7 @@
   "vars": {
     // "BASE_DOMAIN": "localhost",     // en producción: "tudominio.com"
     // "ENVIRONMENT": "development",   // en producción: "production" (cookies Secure, sin ?negocio=)
-    "BASE_DOMAIN": "lab.dualstudio-ve-6e8.workers.dev",
+    "BASE_DOMAIN": "lab.dualstudio.app",
     "ENVIRONMENT": "production",
     "TZ_OFFSET_MIN": "-240",
     "BCV_API_URL": "https://ve.dolarapi.com/v1/dolares/oficial",
@@ -38,9 +38,11 @@
   },
 
   // Tasa BCV: una consulta por hora.
-  "triggers": { "crons": ["0 * * * *"] }
+  "triggers": { "crons": ["0 * * * *"] },
 
-  // Cada negocio vive en una ruta (/<negocio>), así que funciona en *.workers.dev sin configurar nada más.
-  // Con dominio propio (la zona debe estar en Cloudflare), basta una ruta:
-  // "routes": [{ "pattern": "tudominio.com/*", "zone_name": "tudominio.com" }]
+  // Dominio propio: lab.dualstudio.app/<negocio>. La zona dualstudio.app está en Cloudflare;
+  // con custom_domain, Cloudflare crea el registro DNS y el certificado al desplegar.
+  // Cada negocio vive en una ruta (/<negocio>), así que no hace falta DNS comodín.
+  // La dirección lab.<cuenta>.workers.dev sigue activa; para apagarla: "workers_dev": false
+  "routes": [{ "pattern": "lab.dualstudio.app", "custom_domain": true }]
 }
