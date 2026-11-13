@@ -71,6 +71,8 @@ Desde el panel general (tarjeta **Tu cuenta**) el superadministrador cambia su c
 
 Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Dominios al publicar; no hace falta añadirlas a mano.
 
+**Probar antes de publicar:** se trabaja en la rama `desarrollo`. Con las compilaciones de vista previa activadas en el Worker `cotizalo` (Configuración → Compilación), cada cambio en `desarrollo` crea una versión de prueba en `desarrollo-cotizalo.<cuenta>.workers.dev/cotizalo`, sin tocar `dualstudio.app`. **Usa la misma base de datos que la app publicada:** prueba dentro de un negocio de pruebas (créalo desde `/cotizalo/super`) y no uses «Borrar datos» en negocios reales. Cuando todo esté bien, se une `desarrollo` en `master` y se publica.
+
 **Primera instalación desde cero** (con la terminal):
 
 1. `npx wrangler d1 create presupuesto` → pega el `database_id` en `wrangler.jsonc`.

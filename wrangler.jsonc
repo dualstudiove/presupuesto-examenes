@@ -52,5 +52,9 @@
   ],
   // Sin dirección *.workers.dev: la única dirección es la del dominio. (Con "routes", Cloudflare la apaga
   // igualmente; aquí queda explícito. Ponla en true si algún día la necesitas para pruebas.)
-  "workers_dev": false
+  "workers_dev": false,
+  // Versiones de prueba: cada cambio en una rama que no es master (p. ej. desarrollo) crea una versión
+  // con su propia dirección <rama>-cotizalo.<cuenta>.workers.dev, sin tocar dualstudio.app.
+  // OJO: usa la MISMA base de datos que la app publicada; prueba en un negocio de pruebas.
+  "preview_urls": true
 }
