@@ -73,6 +73,8 @@ Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Domini
 
 **Probar antes de publicar:** se trabaja en la rama `desarrollo`. Con las compilaciones de vista previa activadas en el Worker `cotizalo` (Configuración → Compilación → *Base de vistas previas*, comando `npx wrangler versions upload`, que reutiliza los secretos del Worker; no `npx wrangler preview`, que usa secretos aparte) y la dirección «Vista previa» encendida en Dominios, cada cambio en `desarrollo` crea una versión de prueba en `desarrollo-cotizalo.<cuenta>.workers.dev/cotizalo`, sin tocar `dualstudio.app`. **Usa la misma base de datos que la app publicada:** prueba dentro de un negocio de pruebas (créalo desde `/cotizalo/super`) y no uses «Borrar datos» en negocios reales. Cuando todo esté bien, se une `desarrollo` en `master` y se publica.
 
+Si una compilación falla con «The name in your wrangler.jsonc file (cotizalo) must match the name of your Worker», la conexión con GitHub quedó con un nombre viejo (pasa al renombrar el Worker): en Configuración → Compilación, desconecta y vuelve a conectar el repositorio, y repite los comandos de producción y de vista previa.
+
 **Primera instalación desde cero** (con la terminal):
 
 1. `npx wrangler d1 create presupuesto` → pega el `database_id` en `wrangler.jsonc`.
