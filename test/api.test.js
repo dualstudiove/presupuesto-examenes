@@ -73,7 +73,7 @@ test('la ruta decide el negocio y se aíslan los datos', async () => {
 
 test('la raíz no sirve la API de un negocio y las páginas respetan la ruta', async () => {
   assert.equal((await pedir({ path: '/api/publico/catalogo' })).status, 404);
-  assert.match((await pedir({ path: '/' })).texto, /Plataforma/i);
+  assert.match((await pedir({ path: '/' })).texto, /js\/inicio\.js/);
   assert.match((await demo({ path: '/' })).texto, /<div id="app">/);
   assert.equal((await demo({ path: '/super' })).status, 404);
   assert.match((await demo({ path: '/admin' })).texto, /<div id="root">/);

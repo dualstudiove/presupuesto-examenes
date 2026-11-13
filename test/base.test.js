@@ -41,7 +41,7 @@ test('BASE_PATH se normaliza y rechaza valores raros', async () => {
 });
 
 test('las páginas y la API viven bajo la base', async () => {
-  assert.match((await pedir('/cotizalo')).texto, /Plataforma/i);
+  assert.match((await pedir('/cotizalo')).texto, /js\/inicio\.js/);
   assert.match((await pedir('/cotizalo/demo')).texto, /<div id="app">/);
   assert.match((await pedir('/cotizalo/demo/admin')).texto, /<div id="root">/);
   assert.match((await pedir('/cotizalo/super')).texto, /<div id="root">/);

@@ -18,12 +18,14 @@ import { negocioPorSlug, RESERVADOS } from './negocio.js';
 import { consultaProgramada } from './bcv.js';
 import { registrarPublicas } from './routes/public.js';
 import { registrarAdmin } from './routes/admin.js';
-import { registrarSuper } from './routes/super.js';
+import { registrarSuper, superDe } from './routes/super.js';
+import { registrarAcceso } from './routes/acceso.js';
 
 const router = new Router();
 registrarPublicas(router);
 registrarAdmin(router);
 registrarSuper(router);
+registrarAcceso(router);
 
 export const app = new Hono();
 
@@ -118,7 +120,8 @@ async function atender(c, r) {
     if (tenant.root) throw new HttpError(404, 'Negocio no encontrado.');
     const neg = await negocioPorSlug(tenant.slug);
     if (!neg) throw new HttpError(404, 'Negocio no encontrado.');
-    if (!neg.activo) throw new HttpError(403, 'Este servicio no está disponible por el momento.');
+    // Un negocio suspendido no atiende a nadie… salvo al superadministrador.
+    if (!neg.activo && !(await superDe(ctx.cookies))) throw new HttpError(403, 'Este servicio no está disponible por el momento.');
     ctx.negocio = neg;
   }
   if (o.root && !tenant.root) throw new HttpError(404, 'No encontrado.');
@@ -172,7 +175,9 @@ async function pagina(c, archivo) {
   if (tenant.root) return noEncontrada(); // /api, /css… no son negocios
   const neg = await negocioPorSlug(tenant.slug);
   if (!neg) return respHtml(404, paginaMensaje('Negocio no encontrado', 'No existe un negocio con esta dirección. Revisa que el enlace esté bien escrito.'));
-  if (!neg.activo) return respHtml(403, paginaMensaje('Servicio no disponible', 'Este servicio no está disponible por el momento.'));
+  if (!neg.activo && !(await superDe(parseCookies(c.req.raw.headers.get('cookie') || '')))) {
+    return respHtml(403, paginaMensaje('Servicio no disponible', 'Este servicio no está disponible por el momento.'));
+  }
   return asset(c, archivo);
 }
 

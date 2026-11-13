@@ -9,10 +9,12 @@ Hoy vive dentro de la central de apps de Dual Studio:
 | Dirección | Qué es |
 |---|---|
 | `dualstudio.app` | Página central con las apps (carpeta `central/`, Worker aparte) |
-| `dualstudio.app/cotizalo` | Portada de Cotízalo |
+| `dualstudio.app/cotizalo` | **Inicio de sesión único**: el superadministrador va a su panel; el administrador, a su negocio (si administra varios, elige) |
 | `dualstudio.app/cotizalo/<negocio>` | App del paciente de cada negocio |
 | `dualstudio.app/cotizalo/<negocio>/admin` | Administración del negocio |
-| `dualstudio.app/cotizalo/super` | Superadministrador de la plataforma |
+| `dualstudio.app/cotizalo/super` | Panel del superadministrador: crea y suspende negocios, gestiona credenciales y entra a cualquier negocio con «Abrir panel» |
+
+**El superadministrador puede con todo:** con su propia sesión ve la app del paciente y el panel de administración de cualquier negocio (también de los suspendidos, que nadie más ve), sin necesitar la contraseña del negocio. Dentro de un negocio aparece un aviso «Estás dentro de … como superadministrador» con un enlace para volver al panel general. Lo único que no hace ahí es cambiar la contraseña del administrador: eso se hace con «Credenciales» en el panel general.
 
 **Nada de esto está escrito en el código.** La ruta sale de la variable `BASE_PATH` de `wrangler.jsonc` (`"/cotizalo"`) y el dominio, de `routes`. El navegador deduce la ruta de dónde se sirven sus scripts. Para mudar la app a su propio dominio (p. ej. `cotizalo.com/<negocio>`) solo se cambia `wrangler.jsonc`: `"BASE_PATH": ""` y `"routes": [{ "pattern": "cotizalo.com", "custom_domain": true }]`.
 

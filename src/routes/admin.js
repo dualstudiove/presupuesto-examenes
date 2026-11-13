@@ -9,6 +9,7 @@ import { Raw } from '../http.js';
 import { getConfig, tocarPrecios, invalidarNegocios } from '../negocio.js';
 import { calcularDashboard, csvDashboard } from '../dashboard.js';
 import { tasaGlobal } from '../bcv.js';
+import { superDe } from './super.js';
 import {
   HttpError, uuid, nowIso, str, optStr, entero, precioCent, esColor, validarLogo, validarPassword,
   esDia, hoy, sumarDias, placeholders,
@@ -17,12 +18,23 @@ import {
 // La sesión del administrador vive solo bajo <base>/<negocio> (p. ej. /cotizalo/demo).
 const rutaNegocio = (negocio) => `${env.basePath}/${negocio.slug}`;
 
+/** Cookie de sesión del administrador de un negocio. */
+export const cookieSesionAdmin = (u, negocio) =>
+  cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600, path: rutaNegocio(negocio) });
+
+/**
+ * Quién administra: el administrador del negocio o, si no hay sesión de ese negocio, el superadministrador,
+ * que puede entrar a cualquier negocio. En ese caso el usuario lleva super: true.
+ */
 export async function sesionAdmin(ctx) {
   const tok = leerToken(ctx.cookies.sid_admin);
-  if (!tok || tok.k !== 'a' || tok.nid !== ctx.negocio.id) throw new HttpError(401, 'Inicia sesión para continuar.');
-  const u = await db.get('SELECT id, email, nombre, password_hash, activo FROM usuarios_admin WHERE id = ? AND negocio_id = ?', [tok.uid, ctx.negocio.id]);
-  if (!u || !u.activo || marcaPassword(u.password_hash) !== tok.ph) throw new HttpError(401, 'Tu sesión expiró. Inicia sesión de nuevo.');
-  return u;
+  if (tok && tok.k === 'a' && tok.nid === ctx.negocio.id) {
+    const u = await db.get('SELECT id, email, nombre, password_hash, activo FROM usuarios_admin WHERE id = ? AND negocio_id = ?', [tok.uid, ctx.negocio.id]);
+    if (u && u.activo && marcaPassword(u.password_hash) === tok.ph) return u;
+  }
+  const s = await superDe(ctx.cookies);
+  if (s) return { id: null, email: s.email, nombre: 'Superadministrador', super: true };
+  throw new HttpError(401, tok ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'Inicia sesión para continuar.');
 }
 
 const nombreUnico = async (tabla, nid, nombre, excluirId = null) => {
@@ -49,7 +61,7 @@ export function registrarAdmin(r) {
     }
     limpiarFallos(key);
     // La sesión vive solo bajo /<negocio>: cada negocio tiene su propia cookie aunque compartan dominio.
-    ctx.setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: ctx.negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600, path: rutaNegocio(ctx.negocio) }));
+    ctx.setCookies.push(cookieSesionAdmin(u, ctx.negocio));
     return { email: u.email, nombre: u.nombre };
   });
 
@@ -59,14 +71,15 @@ export function registrarAdmin(r) {
   });
 
   r.add('GET', '/api/admin/me', A, async ({ usuario, negocio }) => ({
-    email: usuario.email, nombre: usuario.nombre, negocio: { slug: negocio.slug, nombre: negocio.nombre },
+    email: usuario.email, nombre: usuario.nombre, super: !!usuario.super, negocio: { slug: negocio.slug, nombre: negocio.nombre, activo: !!negocio.activo },
   }));
 
   r.add('POST', '/api/admin/password', A, async ({ usuario, body, setCookies, negocio }) => {
+    if (usuario.super) throw new HttpError(403, 'Como superadministrador no tienes contraseña en este negocio. Para cambiar la del administrador usa «Credenciales» en el panel general.');
     if (!(await verifyPassword(String(body.actual || ''), usuario.password_hash))) throw new HttpError(400, 'La contraseña actual no es correcta.');
     const hash = await hashPassword(validarPassword(body.nueva));
     await db.run('UPDATE usuarios_admin SET password_hash = ? WHERE id = ?', [hash, usuario.id]);
-    setCookies.push(cookie('sid_admin', firmarToken({ k: 'a', uid: usuario.id, nid: negocio.id, ph: marcaPassword(hash) }), { maxAge: 12 * 3600, path: rutaNegocio(negocio) }));
+    setCookies.push(cookieSesionAdmin({ id: usuario.id, password_hash: hash }, negocio));
     return { ok: true };
   });
 

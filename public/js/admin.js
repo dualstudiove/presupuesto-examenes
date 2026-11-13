@@ -51,13 +51,17 @@ function vistaLogin() {
 const LINKS = [['#/', 'Panel'], ['#/examenes', 'Exámenes'], ['#/perfiles', 'Perfiles'], ['#/categorias', 'Categorías'], ['#/precios', 'Precios'], ['#/config', 'Configuración']];
 
 function armarMarco() {
-  root.innerHTML = `<header class="adm-top"><div class="in">
+  const sup = A.me.super;
+  const negocio = A.pub.negocio;
+  // El superadministrador entra a cualquier negocio con su propia sesión: se le avisa y se le ofrece volver.
+  const aviso = sup ? `<div class="modo-super" role="note"><div class="in"><span class="grow">Estás dentro de <b>${esc(negocio.nombre)}</b> como superadministrador${A.me.negocio.activo ? '' : ' · <b>negocio suspendido</b>'}.</span><a href="${esc(BASE)}/super">← Volver al panel general</a></div></div>` : '';
+  root.innerHTML = `${aviso}<header class="adm-top"><div class="in">
       <div class="brand" style="flex:none">${A.pub.negocio.logo ? `<img src="${esc(A.pub.negocio.logo)}" alt="">` : `<span class="mark">${icon('flask')}</span>`}<div><strong>${esc(A.pub.negocio.nombre)}</strong><small>Administración</small></div></div>
       <nav class="adm-nav" aria-label="Secciones">${LINKS.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav>
       <a class="btn btn-sm" href="${esc(NEGOCIO)}" target="_blank" rel="noopener">Ver aplicación</a>
-      <button class="btn btn-sm" id="salir">${icon('out')} Salir</button>
+      ${sup ? `<a class="btn btn-sm" href="${esc(BASE)}/super">Panel general</a>` : `<button class="btn btn-sm" id="salir">${icon('out')} Salir</button>`}
     </div></header><main class="page" id="page"></main>`;
-  $('#salir').addEventListener('click', async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); location.hash = '#/'; location.reload(); });
+  $('#salir')?.addEventListener('click', async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); location.hash = '#/'; location.reload(); });
 }
 
 async function ruta() {
@@ -370,10 +374,10 @@ async function pConfig(page) {
     <div class="card" style="max-width:760px"><h3>Dirección de la aplicación</h3>
       <p class="small">Comparte este enlace con tus pacientes: <b>${esc(urlCompleta(`/${slug}`))}</b></p><p class="muted xs">Panel de administración: ${esc(urlCompleta(`/${slug}/admin`))}</p></div>
 
-    <div class="card" style="max-width:760px"><h3>Seguridad</h3>
+    ${A.me.super ? '' : `<div class="card" style="max-width:760px"><h3>Seguridad</h3>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>
         <div class="field"><label for="pn">Contraseña nueva</label><input id="pn" type="password" autocomplete="new-password" minlength="8"><span class="hint">Mínimo 8 caracteres.</span></div></div>
-        <button class="btn" type="submit">Cambiar contraseña</button></form></div>`;
+        <button class="btn" type="submit">Cambiar contraseña</button></form></div>`}`;
 
   const pintarOrigenes = (lista) => {
     $('#ol').innerHTML = lista.length ? lista.map((o) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1" class="${o.activo ? '' : 'muted'}">${esc(o.nombre)}${o.activo ? '' : ' (oculta)'}</span>
@@ -415,7 +419,7 @@ async function pConfig(page) {
       ruta();
     });
   });
-  $('#fpw').addEventListener('submit', async (ev) => {
+  $('#fpw')?.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     await conBoton($('button', ev.target), async () => { await api('/api/admin/password', { method: 'POST', body: { actual: $('#pa').value, nueva: $('#pn').value } }); ev.target.reset(); toast('Contraseña actualizada', 'ok'); });
   });

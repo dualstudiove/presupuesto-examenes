@@ -9,6 +9,14 @@ import { crearNegocio, invalidarNegocios } from '../negocio.js';
 import { estadoConsulta, guardarTasaManualGlobal, refrescarTasa, tasaGlobal } from '../bcv.js';
 import { HttpError, uuid, nowIso, str, esColor, esEmail, validarPassword } from '../util.js';
 
+/** Cookie de sesión del superadministrador (vale en toda la app: BASE_PATH). */
+export const cookieSesionSuper = (u) => cookie('sid_super', firmarToken({ k: 's', uid: u.id, ph: marcaPassword(u.password_hash) }, 8 * 3600), { maxAge: 8 * 3600 });
+
+/** ¿Las cookies traen una sesión válida de superadministrador? (no lanza error) */
+export async function superDe(cookies) {
+  try { return await sesionSuper({ cookies }); } catch { return null; }
+}
+
 export async function sesionSuper(ctx) {
   const tok = leerToken(ctx.cookies.sid_super);
   if (!tok || tok.k !== 's') throw new HttpError(401, 'Inicia sesión para continuar.');
@@ -34,7 +42,7 @@ export function registrarSuper(r) {
       throw new HttpError(401, 'Correo o contraseña incorrectos.');
     }
     limpiarFallos(key);
-    ctx.setCookies.push(cookie('sid_super', firmarToken({ k: 's', uid: u.id, ph: marcaPassword(u.password_hash) }, 8 * 3600), { maxAge: 8 * 3600 }));
+    ctx.setCookies.push(cookieSesionSuper(u));
     return { email: u.email };
   });
 

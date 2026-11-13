@@ -278,6 +278,14 @@ td.empty { display: table-cell; font-family: var(--font-body); }
 .login .card { padding: 24px; }
 .login h1 { margin: 12px 0 4px; }
 .login p.muted { margin-bottom: 18px; }
+.login .login-pie { text-align: center; margin: 14px 0 0; }
+.login .elige { display: flex; flex-direction: column; gap: 8px; }
+.login .elige .btn { justify-content: flex-start; }
+/* Aviso fijo cuando el superadministrador está dentro de un negocio */
+.modo-super { background: var(--ink); color: var(--bg); font-size: 13px; }
+.modo-super .in { max-width: 1180px; margin: 0 auto; padding: 8px 16px; display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.modo-super a { color: inherit; font-weight: 600; }
+.modo-super .grow { flex: 1; min-width: 0; }
 body.mensaje, body.landing { min-height: 100dvh; display: grid; place-items: center; padding: 20px 16px; }
 .centro { max-width: 460px; text-align: center; padding: 28px; }
 .centro h1 { margin-bottom: 8px; }

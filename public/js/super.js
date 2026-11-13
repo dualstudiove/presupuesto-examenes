@@ -9,30 +9,21 @@ const hora = (iso) => { try { return new Date(iso).toLocaleString('es-VE', { tim
 async function boot() {
   let yo;
   try { yo = await api('/api/super/me'); } catch (e) {
-    if (e.status === 401) return login();
+    if (e.status === 401) return aInicio();
     root.innerHTML = `<div class="login"><div class="card"><h1>No se pudo cargar</h1><p class="muted">${esc(e.message)}</p></div></div>`;
     return;
   }
   await pintar(yo);
 }
 
-function login() {
-  root.innerHTML = `<div class="login"><div class="card"><img src="${BASE}/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
-    <h1>Administración general</h1><p class="muted">Acceso exclusivo de la plataforma.</p>
-    <form id="f" novalidate><div class="field"><label for="e">Correo</label><input id="e" type="email" autocomplete="username"></div>
-    <div class="field"><label for="p">Contraseña</label><input id="p" type="password" autocomplete="current-password"></div>
-    <button class="btn btn-primary btn-lg" type="submit">Entrar</button></form></div></div>`;
-  $('#f').addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    await conBoton($('button', ev.target), async () => { await api('/api/super/login', { method: 'POST', body: { email: $('#e').value, password: $('#p').value } }); boot(); });
-  });
-}
+// Sin sesión: a la página principal, que tiene el inicio de sesión único.
+const aInicio = () => location.replace(BASE || '/');
 
 async function pintar(yo) {
   const [lista, tasa] = await Promise.all([api('/api/super/negocios'), api('/api/super/tasa')]);
   const t = tasa.tasa;
   root.innerHTML = `
-  <header class="adm-top"><div class="in"><div class="brand" style="flex:1"><span class="mark">${icon('flask')}</span><div><strong>Plataforma de presupuestos</strong><small>${esc(yo.email)}</small></div></div>
+  <header class="adm-top"><div class="in"><div class="brand" style="flex:1"><span class="mark">${icon('flask')}</span><div><strong>Cotízalo</strong><small>Superadministrador · ${esc(yo.email)}</small></div></div>
     <button class="btn btn-sm" id="salir">${icon('out')} Salir</button></div></header>
   <main class="page">
     <div class="page-head"><h1>Negocios <span class="muted" style="font-size:1rem;font-weight:500">(${lista.negocios.length})</span></h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nuevo negocio</button></div>
@@ -42,7 +33,7 @@ async function pintar(yo) {
       <td class="small adms">${n.admins.map((a) => esc(a.email)).join('<br>') || '<span class="muted">—</span>'}</td>
       <td class="right" data-l="Exámenes:">${n.examenes}</td><td class="right" data-l="Presupuestos:">${n.presupuestos}</td>
       <td><button class="badge ${n.activo ? 'ok' : 'bad'}" style="cursor:pointer;border:0" data-t="${n.id}">${n.activo ? 'Activo' : 'Suspendido'}</button></td>
-      <td class="acts"><button class="btn btn-sm" data-a="${n.id}">Administrador</button></td></tr>`).join('')}
+      <td class="acts"><a class="btn btn-sm btn-soft" href="${esc(urlNegocio(n.slug))}/admin" title="Entrar al panel de ${esc(n.nombre)}">Abrir panel</a> <button class="btn btn-sm" data-a="${n.id}" title="Crear administrador o cambiar su contraseña">Credenciales</button></td></tr>`).join('')}
     </tbody></table></div>
 
     <div class="card" style="margin-top:20px;max-width:760px"><h3>Tasa BCV (para todos los negocios)</h3>
@@ -53,7 +44,7 @@ async function pintar(yo) {
       <p class="muted xs" style="margin-top:8px">La tasa manual sirve de respaldo si la fuente automática falla; la próxima consulta exitosa la reemplaza.</p></div>
   </main>`;
 
-  $('#salir').addEventListener('click', async () => { await api('/api/super/logout', { method: 'POST' }).catch(() => {}); location.reload(); });
+  $('#salir').addEventListener('click', async () => { await api('/api/super/logout', { method: 'POST' }).catch(() => {}); aInicio(); });
   $('#nuevo').addEventListener('click', formNegocio);
   $('#act').addEventListener('click', (ev) => conBoton(ev.currentTarget, async () => {
     const r = await api('/api/super/tasa/actualizar', { method: 'POST' });
