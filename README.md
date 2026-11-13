@@ -52,6 +52,15 @@ Credenciales de ejemplo: `admin@demo.test` / `Demo12345`, `admin@norte.test` / `
 
 ## Publicar
 
+**Día a día:** Cloudflare está conectado a este repositorio (`dualstudiove/cotizalo`). Cada cambio que llega a la rama `master` se publica solo:
+
+- Worker `cotizalo` (raíz del repo) → `dualstudio.app/cotizalo`
+- Worker `dualstudio` (directorio raíz `central`) → `dualstudio.app`
+
+Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Dominios al publicar; no hace falta añadirlas a mano.
+
+**Primera instalación desde cero** (con la terminal):
+
 1. `npx wrangler d1 create presupuesto` → pega el `database_id` en `wrangler.jsonc`.
 2. `npm run db:migrar` (tablas en producción).
 3. `SUPER_EMAIL=tu@correo SUPER_PASSWORD='una-clave-larga' npm run seed` y `npx wrangler d1 execute presupuesto --remote --file=seed.sql` (crea solo el superadministrador).
