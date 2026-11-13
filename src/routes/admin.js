@@ -37,6 +37,22 @@ export async function sesionAdmin(ctx) {
   throw new HttpError(401, tok ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'Inicia sesión para continuar.');
 }
 
+/** RIF: se guarda en mayúsculas y sin espacios (p. ej. J-12345678-9). Vacío = sin RIF. */
+function rif(v) {
+  const s = str(v, 20).toUpperCase().replace(/\s+/g, '');
+  if (!s) return null;
+  if (!/^[A-Z0-9-]{4,20}$/.test(s)) throw new HttpError(400, 'El RIF solo puede tener letras, números y guiones (por ejemplo J-12345678-9).');
+  return s;
+}
+
+/** Máximo de exámenes sueltos por categoría: vacío o 0 = sin límite; 1 = solo uno; hasta 99. */
+function maxExamenes(v) {
+  if (v === null || v === undefined || v === '' || v === 0 || v === '0') return null;
+  const n = entero(v);
+  if (n === null || n < 1 || n > 99) throw new HttpError(400, 'El máximo de exámenes debe ser un número entre 1 y 99, o vacío para no tener límite.');
+  return n;
+}
+
 const nombreUnico = async (tabla, nid, nombre, excluirId = null) => {
   const fila = await db.get(`SELECT id FROM ${tabla} WHERE negocio_id = ? AND LOWER(nombre) = LOWER(?)`, [nid, nombre]);
   return fila && fila.id !== excluirId;
@@ -87,7 +103,7 @@ export function registrarAdmin(r) {
   r.add('GET', '/api/admin/catalogo', A, async ({ negocio }) => {
     const nid = negocio.id;
     const categorias = await db.all(
-      `SELECT c.id, c.nombre, c.orden, c.activo, (SELECT COUNT(*) FROM examenes e WHERE e.categoria_id = c.id) AS examenes
+      `SELECT c.id, c.nombre, c.orden, c.activo, c.max_examenes, (SELECT COUNT(*) FROM examenes e WHERE e.categoria_id = c.id) AS examenes
          FROM categorias c WHERE c.negocio_id = ? ORDER BY c.orden, c.nombre`,
       [nid],
     );
@@ -116,7 +132,7 @@ export function registrarAdmin(r) {
     if (await nombreUnico('categorias', negocio.id, nombre)) throw new HttpError(409, 'Ya existe una categoría con ese nombre.');
     const id = uuid();
     const orden = entero(body.orden) ?? 99;
-    await db.run('INSERT INTO categorias (id, negocio_id, nombre, orden, activo) VALUES (?,?,?,?,1)', [id, negocio.id, nombre, orden]);
+    await db.run('INSERT INTO categorias (id, negocio_id, nombre, orden, activo, max_examenes) VALUES (?,?,?,?,1,?)', [id, negocio.id, nombre, orden, maxExamenes(body.max_examenes)]);
     return { id };
   });
 
@@ -126,8 +142,9 @@ export function registrarAdmin(r) {
     const nombre = body.nombre !== undefined ? str(body.nombre, 80) : c.nombre;
     if (!nombre) throw new HttpError(400, 'El nombre es obligatorio.');
     if (await nombreUnico('categorias', negocio.id, nombre, c.id)) throw new HttpError(409, 'Ya existe una categoría con ese nombre.');
-    await db.run('UPDATE categorias SET nombre = ?, orden = ?, activo = ? WHERE id = ?', [
-      nombre, body.orden !== undefined ? entero(body.orden) ?? c.orden : c.orden, body.activo !== undefined ? (body.activo ? 1 : 0) : c.activo, c.id,
+    await db.run('UPDATE categorias SET nombre = ?, orden = ?, activo = ?, max_examenes = ? WHERE id = ?', [
+      nombre, body.orden !== undefined ? entero(body.orden) ?? c.orden : c.orden, body.activo !== undefined ? (body.activo ? 1 : 0) : c.activo,
+      body.max_examenes !== undefined ? maxExamenes(body.max_examenes) : c.max_examenes, c.id,
     ]);
     return { ok: true };
   });
@@ -292,6 +309,27 @@ export function registrarAdmin(r) {
     return { afectados: cambios.length };
   });
 
+  // ── Borrar los datos de estadísticas (presupuestos generados y visitas) hasta una fecha ──
+  // { hasta: 'AAAA-MM-DD', simular: true } solo cuenta; sin simular, borra. El catálogo y la configuración no se tocan.
+  r.add('POST', '/api/admin/datos/borrar', A, async ({ negocio, body }) => {
+    const hasta = body.hasta;
+    if (!esDia(hasta)) throw new HttpError(400, 'Elige una fecha válida.');
+    if (hasta > hoy()) throw new HttpError(400, 'La fecha no puede ser posterior a hoy.');
+    const nid = negocio.id;
+    const cuenta = async (tabla) => Number((await db.get(`SELECT COUNT(*) AS n FROM ${tabla} WHERE negocio_id = ? AND dia <= ?`, [nid, hasta])).n);
+    const res = { hasta, presupuestos: await cuenta('presupuestos'), visitas: await cuenta('visitas') };
+    if (body.simular || (!res.presupuestos && !res.visitas)) return { ...res, borrado: false };
+    const maxSec = Number((await db.get('SELECT COALESCE(MAX(secuencia), 0) AS n FROM presupuestos WHERE negocio_id = ? AND dia <= ?', [nid, hasta])).n);
+    await db.tx(async (t) => {
+      // Los códigos de presupuesto siguen desde el último usado, aunque se borren los presupuestos.
+      await t.run('UPDATE configuracion_negocio SET secuencia_base = MAX(COALESCE(secuencia_base, 0), ?) WHERE negocio_id = ?', [maxSec, nid]);
+      for (const tabla of ['presupuesto_examenes', 'presupuesto_items', 'presupuestos', 'visitas']) {
+        await t.run(`DELETE FROM ${tabla} WHERE negocio_id = ? AND dia <= ?`, [nid, hasta]);
+      }
+    });
+    return { ...res, borrado: true };
+  });
+
   // ── Configuración del negocio ──
   r.add('GET', '/api/admin/config', A, async ({ negocio }) => {
     const cfg = await getConfig(negocio.id);
@@ -327,12 +365,13 @@ export function registrarAdmin(r) {
     }
     if (usarManual && !(tasaManual > 0)) throw new HttpError(400, 'Indica el valor de la tasa manual para poder usarla.');
     await db.run(
-      `UPDATE configuracion_negocio SET nombre_publico = ?, logo = ?, color_principal = ?, telefono = ?, direccion = ?, horario = ?,
+      `UPDATE configuracion_negocio SET nombre_publico = ?, logo = ?, color_principal = ?, rif = ?, telefono = ?, direccion = ?, horario = ?,
               pie_presupuesto = ?, dias_vigencia = ?, prefijo_codigo = ?, tasa_manual = ?, usar_tasa_manual = ? WHERE negocio_id = ?`,
       [
         nombre,
         body.logo !== undefined ? validarLogo(body.logo) : cur.logo,
         color,
+        body.rif !== undefined ? rif(body.rif) : cur.rif,
         body.telefono !== undefined ? optStr(body.telefono, 40) : cur.telefono,
         body.direccion !== undefined ? optStr(body.direccion, 200) : cur.direccion,
         body.horario !== undefined ? optStr(body.horario, 200) : cur.horario,

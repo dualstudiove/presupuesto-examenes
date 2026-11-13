@@ -16,6 +16,7 @@ export function registrarPublicas(r) {
       negocio: {
         slug: negocio.slug,
         nombre: cfg.nombre_publico,
+        rif: cfg.rif || null,
         logo: cfg.logo,
         color: cfg.color_principal,
         telefono: cfg.telefono,
@@ -33,7 +34,7 @@ export function registrarPublicas(r) {
   });
 
   r.add('GET', '/api/publico/catalogo', { tenant: true }, async ({ negocio }) => {
-    const categorias = await db.all('SELECT id, nombre FROM categorias WHERE negocio_id = ? AND activo = 1 ORDER BY orden, nombre', [negocio.id]);
+    const categorias = await db.all('SELECT id, nombre, max_examenes FROM categorias WHERE negocio_id = ? AND activo = 1 ORDER BY orden, nombre', [negocio.id]);
     const examenes = await db.all(
       `SELECT e.id, e.nombre, e.categoria_id, e.precio_cent, e.descripcion, e.indicaciones
          FROM examenes e JOIN categorias c ON c.id = e.categoria_id

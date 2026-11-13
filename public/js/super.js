@@ -1,5 +1,5 @@
 // Administración general de la plataforma: negocios (cada uno en dominio/<negocio>), sus administradores y la tasa BCV.
-import { $, $$, esc, api, BASE, urlCompleta, icon, toast, modal, conBoton, fmtFecha, fmtTasa } from './common.js';
+import { $, $$, esc, api, BASE, urlCompleta, icon, toast, modal, confirmar, conBoton, fmtFecha, fmtTasa } from './common.js';
 
 const root = $('#root');
 const urlNegocio = (slug) => urlCompleta(`/${slug}`);
@@ -76,6 +76,10 @@ async function pintar(yo) {
     if (!b) return;
     if (b.dataset.t) {
       const n = lista.negocios.find((x) => x.id === b.dataset.t);
+      const ok = n.activo
+        ? await confirmar(`¿Suspender «${n.nombre}»? Sus pacientes y su administrador no podrán entrar hasta que lo actives de nuevo. Tú seguirás viéndolo.`, { ok: 'Suspender', peligro: true, titulo: 'Suspender negocio' })
+        : await confirmar(`¿Activar «${n.nombre}»? Sus pacientes y su administrador podrán entrar de nuevo.`, { ok: 'Activar', titulo: 'Activar negocio' });
+      if (!ok) return;
       await conBoton(b, async () => { await api(`/api/super/negocios/${n.id}`, { method: 'PUT', body: { activo: !n.activo } }); toast(n.activo ? 'Negocio suspendido' : 'Negocio activado', 'ok'); boot(); });
     }
     if (b.dataset.a) formAdmin(lista.negocios.find((x) => x.id === b.dataset.a));

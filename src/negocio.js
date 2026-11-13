@@ -120,7 +120,7 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
   return db.tx(async (t) => {
     const examenes = exIds.length
       ? await t.all(
-          `SELECT e.id, e.nombre, e.precio_cent, c.nombre AS categoria
+          `SELECT e.id, e.nombre, e.precio_cent, e.categoria_id, c.nombre AS categoria
              FROM examenes e JOIN categorias c ON c.id = e.categoria_id
             WHERE e.negocio_id = ? AND e.activo = 1 AND c.activo = 1 AND e.id IN (${placeholders(exIds)})`,
           [negocio.id, ...exIds],
@@ -156,6 +156,21 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
     for (const p of perfiles) for (const m of miembros.filter((x) => x.perfil_id === p.id)) registrar(m.id, m.nombre, `«${p.nombre}»`);
     for (const e of examenes) registrar(e.id, e.nombre, 'el presupuesto');
 
+    // Máximo de exámenes sueltos por categoría (lo configura el negocio; los que vienen dentro de un perfil no cuentan).
+    if (examenes.length) {
+      const cats = await t.all('SELECT * FROM categorias WHERE negocio_id = ?', [negocio.id]);
+      for (const c of cats) {
+        const max = Number(c.max_examenes) || 0;
+        if (!max) continue;
+        const n = examenes.filter((e) => e.categoria_id === c.id).length;
+        if (n > max) {
+          throw new HttpError(409, max === 1
+            ? `De «${c.nombre}» solo puedes elegir un examen.`
+            : `De «${c.nombre}» puedes elegir hasta ${max} exámenes.`);
+        }
+      }
+    }
+
     const exMap = new Map(examenes.map((e) => [e.id, e]));
     const pfMap = new Map(perfiles.map((p) => [p.id, p]));
     const lineas = items.map((it) => {
@@ -177,7 +192,9 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
       origen = (await t.get('SELECT id, nombre FROM origenes WHERE id = ? AND negocio_id = ? AND activo = 1', [input.origen_id, negocio.id])) || null;
     }
 
-    const sec = Number((await t.get('SELECT COALESCE(MAX(secuencia), 0) + 1 AS n FROM presupuestos WHERE negocio_id = ?', [negocio.id])).n);
+    // secuencia_base: el último número usado antes de borrar datos antiguos, para que los códigos nunca se repitan.
+    const ultima = Number((await t.get('SELECT COALESCE(MAX(secuencia), 0) AS n FROM presupuestos WHERE negocio_id = ?', [negocio.id])).n);
+    const sec = Math.max(ultima, Number(cfg.secuencia_base) || 0) + 1;
     const codigo = `${cfg.prefijo_codigo}-${String(sec).padStart(6, '0')}`;
     const pid = uuid();
     const creado = ahora.toISOString();
@@ -215,7 +232,7 @@ async function crearPresupuestoUnaVez(negocio, input, opts = {}) {
       tasa: tasa ? { valor: tasa.valor, fecha_valor: tasa.fecha_valor, fuente: tasa.fuente, manual: tasa.manual, desactualizada: tasa.desactualizada } : null,
       total_bs_cent: tasa ? totalBs : null,
       negocio: {
-        nombre: cfg.nombre_publico, telefono: cfg.telefono, direccion: cfg.direccion, horario: cfg.horario, pie: cfg.pie_presupuesto,
+        nombre: cfg.nombre_publico, rif: cfg.rif || null, telefono: cfg.telefono, direccion: cfg.direccion, horario: cfg.horario, pie: cfg.pie_presupuesto,
       },
     };
   });

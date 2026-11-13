@@ -267,7 +267,7 @@ td.empty { display: table-cell; font-family: var(--font-body); }
   .modal .acts .btn { flex: 1; }
 }
 #toasts { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 0; right: 0; z-index: 200; display: grid; gap: 8px; justify-items: center; pointer-events: none; padding: 0 16px; }
-.toast { pointer-events: auto; max-width: 480px; padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-pop); animation: pop .18s ease-out; }
+.toast { pointer-events: none; max-width: 480px; padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-pop); animation: pop .18s ease-out; }
 .toast.ok { background: var(--ok); } .toast.bad { background: var(--danger); }
 @keyframes pop { from { transform: translateY(8px); opacity: 0; } }
 .skeleton { height: 86px; border-radius: 10px; background: linear-gradient(90deg, var(--line-2) 25%, var(--surface-2) 50%, var(--line-2) 75%); background-size: 200% 100%; animation: sh 1.2s infinite; margin-bottom: 8px; }
@@ -338,15 +338,45 @@ main.patient { padding-top: 16px; padding-bottom: 110px; }
 #lista > .empty { margin-top: 6px; }
 
 /* Barra inferior del presupuesto */
-.cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 14px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 60%, transparent); pointer-events: none; }
-.cartbar button { pointer-events: auto; display: flex; align-items: center; gap: 12px; width: 100%; max-width: 728px; margin: 0 auto; min-height: 52px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; box-shadow: var(--shadow-pop); }
-.cartbar button:hover { filter: brightness(1.08); }
-.cartbar button > span:last-child { font-family: var(--font-display); font-size: 16px; }
+/* Barras inferiores fijas: carrito (catálogo) y «Generar presupuesto» (resumen) */
+.cartbar, .genbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 14px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 60%, transparent); pointer-events: none; }
+.cart-in { display: flex; gap: 8px; max-width: 728px; margin: 0 auto; }
+.cartbar .ir, .genbar button { pointer-events: auto; display: flex; align-items: center; gap: 12px; flex: 1; width: 100%; max-width: 728px; margin: 0 auto; min-height: 52px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; box-shadow: var(--shadow-pop); }
+.cartbar .ir:hover, .genbar button:hover { filter: brightness(1.08); }
+.cartbar .ir > span:last-child, .genbar button > span:not(.grow) { font-family: var(--font-display); font-size: 16px; }
+.cartbar .vaciar { pointer-events: auto; flex: none; width: 52px; min-height: 52px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink-2); display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow-pop); }
+.cartbar .vaciar:hover { color: var(--danger); border-color: var(--danger); }
 .cartbar .count { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--accent-ink); color: var(--accent); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
-.cartbar .grow { flex: 1; text-align: left; }
-body:has(.cartbar:not([hidden])) #toasts { bottom: calc(86px + env(safe-area-inset-bottom)); }
+.cartbar .grow, .genbar .grow { flex: 1; text-align: left; }
+.genbar button { font-size: 16px; }
+.genbar button svg.i { transform: rotate(180deg); }
+#v-resumen[hidden] .genbar { display: none; }
+body:has(.cartbar:not([hidden])) #toasts, body:has(#v-resumen:not([hidden]) .genbar) #toasts { bottom: calc(86px + env(safe-area-inset-bottom)); }
+/* Con una ventana abierta, los avisos van arriba para no tapar sus botones (gana a las reglas de las barras inferiores) */
+body:has(.overlay) #toasts { top: calc(12px + env(safe-area-inset-top)) !important; bottom: auto !important; }
 
 /* Resumen */
+.res-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.res-head .back { margin-bottom: 0; }
+.vaciar-txt { color: var(--ink-3); }
+.vaciar-txt:hover { color: var(--danger); }
+.pasos { list-style: none; display: flex; align-items: center; gap: 6px; margin: 10px 0 6px; padding: 0; font-size: 13px; color: var(--ink-3); }
+.pasos li { display: flex; align-items: center; gap: 6px; }
+.pasos li + li::before { content: ""; width: 20px; height: 1px; background: var(--line); margin-right: 2px; }
+.pasos i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1px solid var(--line); background: var(--surface); }
+.pasos i svg.i { width: 13px; height: 13px; }
+.pasos .hecho { color: var(--ok); }
+.pasos .hecho i { background: var(--ok-bg); border-color: transparent; color: var(--ok); }
+.pasos .actual { color: var(--ink); font-weight: 600; }
+.pasos .actual i { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
+.notice.falta { margin-bottom: 12px; }
+.limite { display: flex; gap: 6px; align-items: center; margin: 2px 0 6px; font-size: 13px; color: var(--ink-2); }
+.limite svg.i { color: var(--accent); }
+/* Paso intermedio: ¿cómo se enteró? */
+.origenes { display: grid; gap: 8px; margin: 4px 0 8px; }
+.origenes .btn { justify-content: flex-start; font-weight: 500; }
+.origenes .btn:hover { border-color: var(--accent); color: var(--accent); }
+.sin-origen { width: 100%; }
 #v-resumen > h2 { font-size: 24px; }
 .back { margin: 0 0 4px -8px; }
 .lines .line { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
@@ -407,6 +437,12 @@ details.card > summary { font-weight: 600; }
 .picklist { max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 4px 12px 8px; }
 .picklist h4 { margin: 12px 0 2px; font-family: var(--font-body); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; color: var(--ink-3); }
 .logo-prev { width: 84px; height: 84px; border: 1px dashed var(--line); border-radius: 12px; display: grid; place-items: center; overflow: hidden; background: var(--surface-2); color: var(--ink-3); font-size: 12px; text-align: center; flex: none; }
+.enlace { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.enlace code { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
+.zona-peligro { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.zona-peligro > h3 { color: var(--danger); }
+.borrar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin-top: 12px; }
+.borrar .field { flex: 0 1 200px; }
 .logo-prev img { width: 100%; height: 100%; object-fit: contain; }
 
 /* Dashboard */
@@ -444,7 +480,7 @@ details.card > summary { font-weight: 600; }
 
 /* Impresión: siempre en claro */
 @media print {
-  .top, .cartbar, .actions, .back, #toasts, details.card { display: none !important; }
+  .top, .cartbar, .genbar, .actions, .back, #toasts, details.card { display: none !important; }
   :root:not([data-print]):not([data-theme="x"]) {
     --bg: #ffffff; --surface: #ffffff; --surface-2: #f8f9fb; --ink: #14161c; --ink-2: #4b5160; --ink-3: #757c8c;
     --line: #dfe2e9; --line-2: #eceef3; --accent: var(--primary, #3342e8); color-scheme: light;

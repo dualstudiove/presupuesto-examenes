@@ -4,6 +4,7 @@ import {
   parsePrecio, centAInput, imagenAJpeg, fmtTasa,
 } from './common.js';
 import { graficoDias, barras, calor, semana, reparto } from './charts.js';
+import { copiarTexto } from './export.js';
 
 const root = $('#root');
 const A = { me: null, pub: null, cat: null };
@@ -78,6 +79,16 @@ async function ruta() {
   }
 }
 const recargar = async () => { A.cat = null; await ruta(); };
+
+/** Paso de confirmación antes de activar o desactivar algo (evita cambios por un toque involuntario). */
+function confirmarEstado(que, nombre, activo, { off = 'Desactivar', on = 'Activar', efectoOff = 'Dejará de verse para los pacientes.', efectoOn = 'Volverá a verse para los pacientes.' } = {}) {
+  return activo
+    ? confirmar(`¿${off} ${que} «${nombre}»? ${efectoOff}`, { ok: off, peligro: true, titulo: `${off} ${que}` })
+    : confirmar(`¿${on} ${que} «${nombre}»? ${efectoOn}`, { ok: on, titulo: `${on} ${que}` });
+}
+
+/** Texto del límite de una categoría para el administrador. */
+const textoLimite = (max) => (!max ? 'Sin límite' : max === 1 ? 'Solo uno' : `Hasta ${max}`);
 
 // ───────────── Panel (estadísticas) ─────────────
 const D = { preset: '7', desde: '', hasta: '' };
@@ -165,7 +176,7 @@ async function pExamenes(page) {
     if (!b) return;
     const ex = c.examenes.find((x) => x.id === (b.dataset.e || b.dataset.t || b.dataset.d));
     if (b.dataset.e) formExamen(c, ex);
-    if (b.dataset.t) await conBoton(b, async () => { await api(`/api/admin/examenes/${ex.id}`, { method: 'PUT', body: { activo: !ex.activo } }); await recargar(); });
+    if (b.dataset.t && await confirmarEstado('el examen', ex.nombre, ex.activo)) await conBoton(b, async () => { await api(`/api/admin/examenes/${ex.id}`, { method: 'PUT', body: { activo: !ex.activo } }); await recargar(); });
     if (b.dataset.d) {
       const enPerfiles = c.perfiles.filter((p) => p.examen_ids.includes(ex.id));
       const msg = enPerfiles.length ? `«${ex.nombre}» también está en ${enPerfiles.length} perfil(es): ${enPerfiles.map((p) => p.nombre).join(', ')}. Se quitará de ellos. ¿Eliminar de todos modos?` : `¿Eliminar «${ex.nombre}»? Esta acción no se puede deshacer.`;
@@ -220,7 +231,7 @@ async function pPerfiles(page) {
     if (!b) return;
     const p = c.perfiles.find((x) => x.id === (b.dataset.e || b.dataset.t || b.dataset.d));
     if (b.dataset.e) formPerfil(c, p);
-    if (b.dataset.t) await conBoton(b, async () => { await api(`/api/admin/perfiles/${p.id}`, { method: 'PUT', body: { activo: !p.activo } }); await recargar(); });
+    if (b.dataset.t && await confirmarEstado('el perfil', p.nombre, p.activo)) await conBoton(b, async () => { await api(`/api/admin/perfiles/${p.id}`, { method: 'PUT', body: { activo: !p.activo } }); await recargar(); });
     if (b.dataset.d && await confirmar(`¿Eliminar el perfil «${p.nombre}»? Los exámenes que incluye no se borran.`, { ok: 'Eliminar', peligro: true, titulo: 'Eliminar perfil' })) {
       await conBoton(b, async () => { await api(`/api/admin/perfiles/${p.id}`, { method: 'DELETE' }); toast('Perfil eliminado', 'ok'); await recargar(); });
     }
@@ -272,8 +283,8 @@ async function pCategorias(page) {
   const c = await catalogo(true);
   page.innerHTML = `
     <div class="page-head"><h1>Categorías</h1><button class="btn btn-primary" id="nuevo">${icon('plus')} Nueva categoría</button></div>
-    <div class="tw"><table class="t"><thead><tr><th>Categoría</th><th>Orden</th><th>Exámenes</th><th>Estado</th><th></th></tr></thead><tbody>
-    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><span class="tag cat-${(c.categorias.indexOf(k) % 5) + 1}">${esc(k.nombre)}</span></td><td data-l="Orden:">${k.orden}</td><td data-l="Exámenes:">${k.examenes}</td><td><span class="badge ${k.activo ? 'ok' : 'off'}">${k.activo ? 'Activa' : 'Oculta'}</span></td>
+    <div class="tw"><table class="t"><thead><tr><th>Categoría</th><th>Orden</th><th>Exámenes</th><th>Por presupuesto</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${c.categorias.map((k) => `<tr class="${k.activo ? '' : 'off'}"><td><span class="tag cat-${(c.categorias.indexOf(k) % 5) + 1}">${esc(k.nombre)}</span></td><td data-l="Orden:">${k.orden}</td><td data-l="Exámenes:">${k.examenes}</td><td data-l="Por presupuesto:">${textoLimite(k.max_examenes)}</td><td><button class="badge ${k.activo ? 'ok' : 'off'}" style="cursor:pointer;border:0" data-t="${k.id}" title="Cambiar estado">${k.activo ? 'Activa' : 'Oculta'}</button></td>
       <td class="acts"><button class="btn btn-sm" data-e="${k.id}">${icon('edit')} Editar</button> <button class="btn btn-sm btn-danger btn-icon" data-d="${k.id}" aria-label="Eliminar ${esc(k.nombre)}">${icon('trash')}</button></td></tr>`).join('')}
     </tbody></table></div>
     <p class="muted small" style="margin-top:10px">Si ocultas una categoría, sus exámenes dejan de mostrarse a los pacientes.</p>`;
@@ -282,25 +293,42 @@ async function pCategorias(page) {
       titulo: k ? 'Editar categoría' : 'Nueva categoría',
       html: `<div class="field"><label for="n">Nombre</label><input id="n" type="text" maxlength="80" value="${esc(k?.nombre)}"></div>
         <div class="field"><label for="o">Orden</label><input id="o" type="number" value="${k ? k.orden : c.categorias.length}"><span class="hint">Las categorías se muestran de menor a mayor.</span></div>
+        <div class="field"><label for="lm">¿Cuántos exámenes de esta categoría puede elegir el paciente?</label>
+          <div class="row" style="align-items:start"><select id="lm"><option value="0">Varios, sin límite</option><option value="1">Solo uno</option><option value="n">Varios, con un máximo</option></select>
+          <div class="input-unit" id="lmn-w"><input id="lmn" type="number" min="2" max="99" inputmode="numeric" aria-label="Máximo de exámenes" placeholder="Ej.: 3"><span>máx.</span></div></div>
+          <span class="hint">Cuenta los exámenes que el paciente elige sueltos; los que vienen dentro de un perfil no cuentan.</span></div>
         <label class="check"><input id="a" type="checkbox" ${k?.activo === 0 ? '' : 'checked'}> Visible para los pacientes</label>`,
       acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, {
         texto: 'Guardar', clase: 'btn-primary',
         onClick: async (cerrar, btn) => {
           if (!$('#n', m.el).value.trim()) return toast('Escribe un nombre.', 'bad');
+          const modo = $('#lm', m.el).value;
+          const max = modo === '0' ? null : modo === '1' ? 1 : Number($('#lmn', m.el).value);
+          if (modo === 'n' && !(max >= 2 && max <= 99)) return toast('Indica un máximo entre 2 y 99.', 'bad');
           await conBoton(btn, async () => {
-            await api(k ? `/api/admin/categorias/${k.id}` : '/api/admin/categorias', { method: k ? 'PUT' : 'POST', body: { nombre: $('#n', m.el).value, orden: Number($('#o', m.el).value), activo: $('#a', m.el).checked } });
+            await api(k ? `/api/admin/categorias/${k.id}` : '/api/admin/categorias', { method: k ? 'PUT' : 'POST', body: { nombre: $('#n', m.el).value, orden: Number($('#o', m.el).value), activo: $('#a', m.el).checked, max_examenes: max } });
             cerrar(); toast('Categoría guardada', 'ok'); await recargar();
           });
         },
       }],
     });
+    // Límite: el número solo aplica a «Varios, con un máximo»
+    const max = k?.max_examenes || 0;
+    $('#lm', m.el).value = !max ? '0' : max === 1 ? '1' : 'n';
+    if (max > 1) $('#lmn', m.el).value = max;
+    const verNumero = () => { $('#lmn-w', m.el).hidden = $('#lm', m.el).value !== 'n'; };
+    $('#lm', m.el).addEventListener('change', () => { verNumero(); if ($('#lm', m.el).value === 'n') $('#lmn', m.el).focus(); });
+    verNumero();
   };
   $('#nuevo').addEventListener('click', () => form());
   $('.t tbody', page).addEventListener('click', async (ev) => {
     const b = ev.target.closest('button');
     if (!b) return;
-    const k = c.categorias.find((x) => x.id === (b.dataset.e || b.dataset.d));
+    const k = c.categorias.find((x) => x.id === (b.dataset.e || b.dataset.d || b.dataset.t));
     if (b.dataset.e) form(k);
+    if (b.dataset.t && await confirmarEstado('la categoría', k.nombre, k.activo, { off: 'Ocultar', on: 'Mostrar', efectoOff: 'Sus exámenes dejarán de verse para los pacientes.', efectoOn: 'Sus exámenes volverán a verse para los pacientes.' })) {
+      await conBoton(b, async () => { await api(`/api/admin/categorias/${k.id}`, { method: 'PUT', body: { activo: !k.activo } }); await recargar(); });
+    }
     if (b.dataset.d && await confirmar(`¿Eliminar la categoría «${k.nombre}»?`, { ok: 'Eliminar', peligro: true, titulo: 'Eliminar categoría' })) {
       await conBoton(b, async () => { await api(`/api/admin/categorias/${k.id}`, { method: 'DELETE' }); toast('Categoría eliminada', 'ok'); await recargar(); });
     }
@@ -353,6 +381,7 @@ async function pConfig(page) {
           <span class="hint">Se ajusta automáticamente. Funciona mejor con fondo blanco o transparente.</span></div>
           <div class="field"><label for="co">Color principal</label><div style="display:flex;gap:10px;align-items:center"><input id="co" type="color" value="${esc(cf.color_principal)}"><span class="muted small">Se usa en botones y encabezados.</span></div></div></div></div>
       <div class="card"><h3>Datos de contacto <span class="muted small" style="font-weight:500">(aparecen en el presupuesto)</span></h3>
+        <div class="field" style="max-width:280px"><label for="rf">RIF</label><input id="rf" type="text" maxlength="20" value="${esc(cf.rif)}" placeholder="J-12345678-9" autocomplete="off" style="text-transform:uppercase"></div>
         <div class="row"><div class="field"><label for="te">Teléfono</label><input id="te" type="text" maxlength="40" value="${esc(cf.telefono)}"></div><div class="field"><label for="ho">Horario</label><input id="ho" type="text" maxlength="200" value="${esc(cf.horario)}"></div></div>
         <div class="field"><label for="di">Dirección</label><input id="di" type="text" maxlength="200" value="${esc(cf.direccion)}"></div></div>
       <div class="card"><h3>Presupuesto</h3>
@@ -372,7 +401,16 @@ async function pConfig(page) {
       <div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="on" maxlength="80" placeholder="Nueva opción (ej.: Volante, TikTok…)" aria-label="Nueva opción"><button class="btn btn-soft" id="oa" style="flex:none">${icon('plus')} Agregar</button></div></div>
 
     <div class="card" style="max-width:760px"><h3>Dirección de la aplicación</h3>
-      <p class="small">Comparte este enlace con tus pacientes: <b>${esc(urlCompleta(`/${slug}`))}</b></p><p class="muted xs">Panel de administración: ${esc(urlCompleta(`/${slug}/admin`))}</p></div>
+      <p class="small" style="margin-bottom:8px">Comparte este enlace con tus pacientes:</p>
+      <div class="enlace"><code id="lk">${esc(urlCompleta(`/${slug}`))}</code>
+        <button type="button" class="btn btn-sm" id="lkc">${icon('copy')} Copiar</button>
+        <a class="btn btn-sm" href="${esc(urlCompleta(`/${slug}`))}" target="_blank" rel="noopener">${icon('share')} Abrir</a></div>
+      <p class="muted xs" style="margin-top:10px">Panel de administración: ${esc(urlCompleta(`/${slug}/admin`))}</p></div>
+
+    <div class="card zona-peligro" style="max-width:760px"><h3>Borrar datos de estadísticas</h3>
+      <p class="small">Borra los presupuestos generados y las visitas registradas <b>hasta la fecha que elijas (incluida)</b>, para empezar las estadísticas del panel desde cero a partir de ahí. El catálogo, los precios y la configuración no se tocan, y los códigos de presupuesto nunca se repiten.</p>
+      <div class="borrar"><div class="field" style="margin:0"><label for="bh">Borrar hasta el</label><input id="bh" type="date" max="${hoy()}" value="${restar(hoy(), 30)}"></div>
+        <button type="button" class="btn btn-danger" id="bb">${icon('trash')} Borrar datos…</button></div></div>
 
     ${A.me.super ? '' : `<div class="card" style="max-width:760px"><h3>Seguridad</h3>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>
@@ -391,13 +429,28 @@ async function pConfig(page) {
     const b = ev.target.closest('button');
     if (!b) return;
     const o = ors.find((x) => x.id === (b.dataset.r || b.dataset.v || b.dataset.x));
-    if (b.dataset.v) await conBoton(b, async () => { await api(`/api/admin/origenes/${o.id}`, { method: 'PUT', body: { activo: !o.activo } }); await refrescarOrigenes(); });
+    if (b.dataset.v && await confirmarEstado('la opción', o.nombre, o.activo, { off: 'Ocultar', on: 'Mostrar', efectoOff: 'Los pacientes ya no podrán elegirla.', efectoOn: 'Los pacientes podrán volver a elegirla.' })) await conBoton(b, async () => { await api(`/api/admin/origenes/${o.id}`, { method: 'PUT', body: { activo: !o.activo } }); await refrescarOrigenes(); });
     if (b.dataset.x && await confirmar(`¿Eliminar la opción «${o.nombre}»? Las estadísticas anteriores se conservan.`, { ok: 'Eliminar', peligro: true })) await conBoton(b, async () => { await api(`/api/admin/origenes/${o.id}`, { method: 'DELETE' }); await refrescarOrigenes(); });
     if (b.dataset.r) {
       const m = modal({ titulo: 'Renombrar opción', html: `<div class="field"><input id="rn" type="text" maxlength="80" value="${esc(o.nombre)}" aria-label="Nuevo nombre"></div>`, acciones: [{ texto: 'Cancelar', onClick: (x) => x() }, { texto: 'Guardar', clase: 'btn-primary', onClick: async (cerrar, bt) => { await conBoton(bt, async () => { await api(`/api/admin/origenes/${o.id}`, { method: 'PUT', body: { nombre: $('#rn', m.el).value } }); cerrar(); await refrescarOrigenes(); }); } }] });
     }
   });
 
+  $('#lkc').addEventListener('click', async () => {
+    if (await copiarTexto($('#lk').textContent)) toast('Enlace copiado', 'ok');
+    else toast('No se pudo copiar. Selecciona el enlace y cópialo a mano.', 'bad');
+  });
+  $('#bb').addEventListener('click', (ev) => conBoton(ev.currentTarget, async () => {
+    const hasta = $('#bh').value;
+    if (!hasta) return toast('Elige la fecha hasta la que quieres borrar.', 'bad');
+    // Primero se cuenta qué se borraría; luego se pide confirmación con esos números.
+    const r = await api('/api/admin/datos/borrar', { method: 'POST', body: { hasta, simular: true } });
+    if (!r.presupuestos && !r.visitas) return toast(`No hay datos hasta el ${fmtFecha(hasta)}.`);
+    const ok = await confirmar(`Se borrarán ${r.presupuestos} presupuesto(s) generado(s) y ${r.visitas} visita(s) registradas hasta el ${fmtFecha(hasta)} (incluido). Las estadísticas del panel dejarán de contarlos. Esto no se puede deshacer.`, { ok: 'Borrar definitivamente', peligro: true, titulo: 'Borrar datos de estadísticas' });
+    if (!ok) return;
+    const f = await api('/api/admin/datos/borrar', { method: 'POST', body: { hasta } });
+    toast(`Listo: se borraron ${f.presupuestos} presupuesto(s) y ${f.visitas} visita(s).`, 'ok');
+  }));
   $('#lb').addEventListener('click', () => $('#lf').click());
   $('#lf').addEventListener('change', async (ev) => {
     try { logo = await imagenAJpeg(ev.target.files[0]); $('#lp').innerHTML = `<img src="${logo}" alt="">`; $('#lq').hidden = false; } catch (e) { toast(e.message, 'bad'); }
@@ -408,7 +461,7 @@ async function pConfig(page) {
     const tmTxt = $('#tm').value.trim().replace(',', '.');
     await conBoton($('button[type=submit]', ev.target), async () => {
       await api('/api/admin/config', { method: 'PUT', body: {
-        nombre_publico: $('#nm').value, logo, color_principal: $('#co').value, telefono: $('#te').value, horario: $('#ho').value, direccion: $('#di').value,
+        nombre_publico: $('#nm').value, logo, color_principal: $('#co').value, rif: $('#rf').value, telefono: $('#te').value, horario: $('#ho').value, direccion: $('#di').value,
         dias_vigencia: Number($('#vi').value), prefijo_codigo: $('#px').value, pie_presupuesto: $('#pie').value,
         usar_tasa_manual: $('#um').checked, tasa_manual: tmTxt === '' ? null : Number(tmTxt),
       } });

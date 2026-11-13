@@ -7,6 +7,7 @@ export function buildDoc({ res, negocio, paciente = {} }) {
   const limpio = (v) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
   return {
     nombre: res.negocio.nombre,
+    rif: res.negocio.rif || negocio.rif || null, // los presupuestos guardados antes del RIF lo toman de la config actual
     telefono: res.negocio.telefono,
     direccion: res.negocio.direccion,
     horario: res.negocio.horario,
@@ -35,7 +36,7 @@ export const tasaTexto = (d) =>
       : `Tasa BCV: ${fmtTasa(d.tasa.valor)} Bs. por REF (${fmtFecha(d.tasa.fecha_valor)})`;
 
 const datosPaciente = (d) => [['Paciente', d.paciente.nombre], ['C.I.', d.paciente.cedula], ['Teléfono', d.paciente.telefono], ['Médico referente', d.paciente.medico]].filter(([, v]) => v);
-const contacto = (d) => [d.telefono && `Tel. ${d.telefono}`, d.direccion, d.horario].filter(Boolean);
+const contacto = (d) => [d.rif && `RIF ${d.rif}`, d.telefono && `Tel. ${d.telefono}`, d.direccion, d.horario].filter(Boolean);
 
 // ─────────────────────────── Texto ───────────────────────────
 export function toText(d) {

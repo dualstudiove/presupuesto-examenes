@@ -20,6 +20,7 @@ import { registrarPublicas } from './routes/public.js';
 import { registrarAdmin } from './routes/admin.js';
 import { registrarSuper, superDe, asegurarSuperDesdeSecretos } from './routes/super.js';
 import { registrarAcceso } from './routes/acceso.js';
+import { asegurarEsquema } from './esquema.js';
 
 const router = new Router();
 registrarPublicas(router);
@@ -95,6 +96,7 @@ async function leerJson(req, max = 400_000) {
 app.use('*', async (c, next) => {
   configurarEnv(c.env);
   bindD1(c.env.DB);
+  await asegurarEsquema(c.env.DB);
   await asegurarSuperDesdeSecretos();
   rt.waitUntil = (p) => {
     const q = Promise.resolve(p).catch(() => {});

@@ -1,6 +1,6 @@
 // Aplicación del paciente: arma un presupuesto, lo genera y lo exporta (PDF, imagen o texto).
 import {
-  $, esc, api, ref, bs, fmtTasa, fmtFecha, norm, icon, toast, modal, conBoton, dispositivo, aplicarColor, diaLocal,
+  $, esc, api, ref, bs, fmtTasa, fmtFecha, norm, icon, toast, modal, confirmar, conBoton, dispositivo, aplicarColor, diaLocal,
 } from './common.js';
 import {
   buildDoc, paperHTML, toText, toPdfBlob, toPngBlob, descargar, compartir, puedeCompartir, copiarTexto,
@@ -40,6 +40,7 @@ function cargarEstado() {
   const p = leer(sessionStorage, 'pac'); // los datos personales duran solo mientras la pestaña esté abierta
   if (p) S.pac = { ...S.pac, ...p };
   S.origen = leer(sessionStorage, 'origen') || '';
+  S.origenRespondido = !!leer(sessionStorage, 'origenR');
 }
 const guardarCarro = () => guardar(localStorage, 'carro', { ex: S.ex, pf: S.pf });
 
@@ -163,7 +164,13 @@ function renderLista() {
   else if (!lista.length) {
     html = `<div class="empty">${icon('search')}<p>No encontramos ${S.tab === 'examenes' ? 'exámenes' : 'perfiles'} con ese criterio.</p>
       ${otro ? `<button type="button" class="btn btn-soft btn-sm" data-act="tab" data-id="${S.tab === 'examenes' ? 'perfiles' : 'examenes'}">Ver ${otro} en ${S.tab === 'examenes' ? 'Perfiles' : 'Exámenes'}</button>` : ''}</div>`;
-  } else html = lista.map(S.tab === 'examenes' ? cardExamen : cardPerfil).join('');
+  } else {
+    html = lista.map(S.tab === 'examenes' ? cardExamen : cardPerfil).join('');
+    // Si la categoría elegida tiene límite, se avisa antes de que el paciente choque con él
+    const cat = S.tab === 'examenes' && S.catId && S.cat.categorias.find((c) => c.id === S.catId);
+    const max = Number(cat?.max_examenes) || 0;
+    if (max) html = `<p class="limite">${icon('info')} De ${esc(cat.nombre)} puedes elegir ${max === 1 ? '<b>solo un examen</b>' : `<b>hasta ${max} exámenes</b>`}.</p>${html}`;
+  }
   $('#lista').innerHTML = html;
   renderCartBar();
 }
@@ -173,7 +180,8 @@ function renderCartBar() {
   const n = nItems();
   bar.hidden = !(n > 0 && S.vista === 'catalogo');
   if (bar.hidden) return;
-  bar.innerHTML = `<button type="button" data-act="resumen"><span class="count">${n}</span><span class="grow">Ver mi presupuesto</span><span>${ref(totalRef())}</span></button>`;
+  bar.innerHTML = `<div class="cart-in"><button type="button" class="vaciar" data-act="vaciar" aria-label="Vaciar presupuesto" title="Vaciar presupuesto">${icon('trash')}</button>
+    <button type="button" class="ir" data-act="resumen"><span class="count">${n}</span><span class="grow">Ver mi presupuesto</span><span>${ref(totalRef())}</span></button></div>`;
 }
 
 function renderVista() {
@@ -211,8 +219,11 @@ function renderResumen() {
     ...S.ex.map((id) => exMap.get(id)).map((e) => ({ tipo: 'ex', id: e.id, nombre: e.nombre, precio: e.precio_cent, sub: e.indicaciones || '' })),
   ];
   el.innerHTML = `
-    <button type="button" class="btn btn-ghost back" data-act="volver">${icon('back')} Seguir agregando</button>
-    <h2 style="margin:4px 0 12px">Tu presupuesto</h2>
+    <div class="res-head"><button type="button" class="btn btn-ghost back" data-act="volver">${icon('back')} Seguir agregando</button>
+      <button type="button" class="btn btn-ghost btn-sm vaciar-txt" data-act="vaciar">${icon('trash')} Vaciar</button></div>
+    <ol class="pasos" aria-label="Pasos"><li class="hecho"><i>${icon('check')}</i>Elige</li><li class="actual" aria-current="step"><i>2</i>Revisa</li><li><i>3</i>Genera</li></ol>
+    <h2 style="margin:4px 0 10px">Revisa tu presupuesto</h2>
+    <div class="notice falta">${icon('info')}<div><b>Aún no está listo.</b> Revisa los exámenes y pulsa <b>Generar presupuesto</b>: así obtienes tu código y puedes descargarlo para presentarlo en el laboratorio.</div></div>
     <div class="card lines">${lineas.map((l) => `<div class="line"><div><b>${esc(l.nombre)}</b>${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</div><div class="price">${ref(l.precio)}</div>
       <button type="button" class="btn btn-icon btn-ghost" aria-label="Quitar ${esc(l.nombre)}" data-act="${l.tipo}" data-id="${esc(l.id)}">${icon('trash')}</button></div>`).join('')}</div>
     <div class="card totals">
@@ -222,12 +233,9 @@ function renderResumen() {
         ${t.desactualizada ? `<div class="notice warn" style="margin-top:10px">${icon('warn')}<div>No pudimos actualizar la tasa recientemente; usamos la última conocida (${fmtFecha(t.fecha_valor)}).</div></div>` : ''}`
         : `<div class="notice warn" style="margin-top:10px">${icon('warn')}<div>La tasa de cambio no está disponible en este momento. Puedes generar tu presupuesto en REF.</div></div>`}
     </div>
-    <div class="card"><h3>Datos del paciente <span class="muted small" style="font-weight:500">(opcional)</span></h3>${formPaciente()}
-      ${S.cfg.origenes.length ? `<div class="field" style="margin-bottom:0"><label for="origen">¿Cómo se enteró de nosotros? <span class="muted small" style="font-weight:500">(opcional)</span></label>
-        <select id="origen"><option value="">Prefiero no indicarlo</option>${S.cfg.origenes.map((o) => `<option value="${esc(o.id)}" ${S.origen === o.id ? 'selected' : ''}>${esc(o.nombre)}</option>`).join('')}</select></div>` : ''}
-    </div>
-    <div style="margin-top:16px"><button type="button" class="btn btn-primary btn-lg" data-act="generar">Generar presupuesto</button></div>
-    <p class="muted small" style="text-align:center;margin-top:10px">No guardamos tus datos personales: solo aparecen en el documento que descargues o copies.</p>`;
+    <div class="card"><h3>Datos del paciente <span class="muted small" style="font-weight:500">(opcional)</span></h3>${formPaciente()}</div>
+    <p class="muted small" style="text-align:center;margin-top:12px">No guardamos tus datos personales: solo aparecen en el documento que descargues o copies.</p>
+    <div class="genbar"><button type="button" data-act="generar"><span class="grow">Generar presupuesto</span><span>${ref(total)}</span>${icon('back')}</button></div>`;
 }
 
 // ───────────── Presupuesto generado ─────────────
@@ -250,7 +258,37 @@ function renderOk() {
     <div class="actions"><button type="button" class="btn" data-act="editar">${icon('edit')} Editar presupuesto</button><button type="button" class="btn" data-act="nuevo">${icon('plus')} Nuevo presupuesto</button></div>`;
 }
 
+/**
+ * Paso intermedio antes de generar: ¿cómo se enteró de nosotros? Se pregunta una vez por visita.
+ * Devuelve true para seguir (eligió una opción o prefirió no decirlo) o false si cerró la ventana.
+ */
+function preguntarOrigen() {
+  if (!S.cfg.origenes.length || S.origenRespondido) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let elegido = false;
+    const m = modal({
+      titulo: 'Un último paso',
+      html: `<p>¿Cómo se enteró de nosotros?</p>
+        <div class="origenes">${S.cfg.origenes.map((o) => `<button type="button" class="btn btn-lg" data-o="${esc(o.id)}">${esc(o.nombre)}</button>`).join('')}</div>
+        <button type="button" class="btn btn-ghost btn-sm sin-origen" data-o="">Prefiero no decirlo</button>`,
+      onClose: () => resolve(elegido),
+    });
+    m.el.querySelector('.mb').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-o]');
+      if (!b) return;
+      S.origen = b.dataset.o;
+      S.origenRespondido = true;
+      guardar(sessionStorage, 'origen', S.origen);
+      guardar(sessionStorage, 'origenR', 1);
+      elegido = true;
+      m.cerrar();
+    });
+    m.el.querySelector('[data-o]')?.focus();
+  });
+}
+
 async function generar(btn) {
+  if (!(await preguntarOrigen())) return;
   const lista = items();
   const firma = `${JSON.stringify([...lista].sort((a, b) => a.id.localeCompare(b.id)))}|${S.origen}`;
   if (S.res && S.firma === firma) { irA('ok'); return; } // mismo presupuesto: no se cuenta dos veces
@@ -308,6 +346,20 @@ function alternarExamen(id) {
   else {
     const p = cubiertoPor(id);
     if (p) { toast(`«${e.nombre}» ya está incluido en ${p.nombre}.`); return; }
+    // Límite de exámenes sueltos por categoría (lo configura el negocio)
+    const cat = S.cat.categorias.find((c) => c.id === e.categoria_id);
+    const max = Number(cat?.max_examenes) || 0;
+    const mismos = S.ex.filter((x) => exMap.get(x)?.categoria_id === e.categoria_id);
+    if (max && mismos.length >= max) {
+      if (max === 1) {
+        // Solo uno: se cambia el anterior por el nuevo
+        S.ex = S.ex.filter((x) => x !== mismos[0]);
+        toast(`Cambiamos «${exMap.get(mismos[0]).nombre}» por «${e.nombre}»: de ${cat.nombre} solo puedes elegir uno.`);
+      } else {
+        toast(`De ${cat.nombre} puedes elegir hasta ${max} exámenes. Quita uno para agregar otro.`);
+        return;
+      }
+    }
     S.ex.push(id);
   }
   cambio();
@@ -345,6 +397,20 @@ function alternarPerfil(id) {
   });
 }
 
+/** Vacía el presupuesto (con confirmación). */
+async function vaciar() {
+  const n = nItems();
+  if (!n) return;
+  const texto = n === 1
+    ? '¿Vaciar tu presupuesto? Se quitará lo que elegiste.'
+    : `¿Vaciar tu presupuesto? Se quitarán los ${n} exámenes o perfiles que elegiste.`;
+  if (!(await confirmar(texto, { ok: 'Vaciar', peligro: true, titulo: 'Vaciar presupuesto' }))) return;
+  S.ex = []; S.pf = [];
+  cambio();
+  renderCartBar();
+  toast('Presupuesto vacío');
+}
+
 // ───────────── Eventos ─────────────
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
@@ -356,6 +422,7 @@ document.addEventListener('click', (e) => {
     case 'ex': alternarExamen(id); break;
     case 'pf': alternarPerfil(id); break;
     case 'resumen': irA('resumen'); break;
+    case 'vaciar': vaciar(); break;
     case 'volver': if (history.state?.v && history.state.v !== 'catalogo') history.back(); else { S.vista = 'catalogo'; renderVista(); } break;
     case 'generar': generar(b); break;
     case 'pdf': case 'png': case 'texto': case 'compartir': exportar(act, b); break;
