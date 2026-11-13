@@ -1,6 +1,6 @@
 {
   // Cloudflare Workers + D1. Documentación: https://developers.cloudflare.com/workers/wrangler/configuration/
-  "name": "cotizalo", // también responde en cotizalo.<subdominio-de-la-cuenta>.workers.dev (redirige a BASE_PATH)
+  "name": "cotizalo",
   "main": "src/server.js",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"], // Buffer y node:crypto (firma HMAC de las sesiones)
@@ -49,5 +49,8 @@
   "routes": [
     { "pattern": "dualstudio.app/cotizalo", "zone_name": "dualstudio.app" },
     { "pattern": "dualstudio.app/cotizalo/*", "zone_name": "dualstudio.app" }
-  ]
+  ],
+  // Sin dirección *.workers.dev: la única dirección es la del dominio. (Con "routes", Cloudflare la apaga
+  // igualmente; aquí queda explícito. Ponla en true si algún día la necesitas para pruebas.)
+  "workers_dev": false
 }

@@ -68,7 +68,7 @@ Las rutas de `wrangler.jsonc` aparecen solas en Cloudflare → Worker → Domini
 5. DNS (una sola vez): en Cloudflare → `dualstudio.app` → DNS, un registro **AAAA** con nombre `@`, contenido `100::` y **proxy activado** (nube naranja). Las `routes` de los Workers necesitan que el dominio pase por Cloudflare; ese registro no apunta a ningún servidor.
 6. `npm run deploy` (Cotízalo, en `dualstudio.app/cotizalo`) y `npm run deploy:central` (la página central, en `dualstudio.app`). Crea los negocios desde `/cotizalo/super`.
 
-El Worker se llama `cotizalo`; también responde en `cotizalo.<subdominio-de-tu-cuenta>.workers.dev`, que redirige a `/cotizalo`. Si cambias el nombre del Worker, Cloudflare crea uno nuevo: vuelve a cargar los secretos (`wrangler secret put …`) y borra el anterior.
+El Worker se llama `cotizalo` y solo responde en `dualstudio.app/cotizalo` (`workers_dev: false`). Si cambias el nombre del Worker, Cloudflare crea uno nuevo: vuelve a cargar los secretos (`wrangler secret put …`) y borra el anterior.
 
 **Otra app en la central** (p. ej. Planifica): su propio Worker con `routes` `dualstudio.app/planifica` y `dualstudio.app/planifica/*`, y una tarjeta más en `central/public/index.html`. Cloudflare siempre elige la ruta más específica, así que la central (`dualstudio.app/*`) no la tapa.
 
