@@ -26,7 +26,7 @@ export class Router {
 
   /** add(método, '/ruta/:param', { auth, noCsrf, maxBody, ...opciones propias de la app }, handler) */
   add(method, path, opts, handler) {
-    if (typeof opts === 'function') {
+    if (typeof opts === "function") {
       handler = opts;
       opts = {};
     }

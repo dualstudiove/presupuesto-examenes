@@ -2,53 +2,190 @@
    Lo que comparten el inicio (iniciar sesión, elegir cliente, tu cuenta) y la administración. La parrilla de un
    cliente tiene además su propia hoja (parrilla.css). Colores siempre con var(--…). */
 @layer app {
+  .cargando {
+    display: grid;
+    place-items: center;
+    min-height: 40vh;
+    color: var(--ink-3);
+  }
+  .grow {
+    flex: 1;
+    min-width: 0;
+  }
 
-.cargando { display: grid; place-items: center; min-height: 40vh; color: var(--ink-3); }
-.grow { flex: 1; min-width: 0; }
+  /* Marca de Planifica: cuadrícula de 3×3 con tres puntos en el acento */
+  .marca {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 8px);
+    gap: 3px;
+    flex: none;
+  }
+  .marca i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .marca i.on {
+    background: var(--accent);
+  }
+  .login .marca {
+    margin-bottom: 6px;
+  }
 
-/* Marca de Planifica: cuadrícula de 3×3 con tres puntos en el acento */
-.marca { display: inline-grid; grid-template-columns: repeat(3, 8px); gap: 3px; flex: none; }
-.marca i { width: 8px; height: 8px; border-radius: 2px; background: var(--line); }
-.marca i.on { background: var(--accent); }
-.login .marca { margin-bottom: 6px; }
+  /* Páginas de inicio y administración */
+  .pag {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pag.ancha {
+    max-width: 1120px;
+  }
+  .cab {
+    display: flex;
+    align-items: center;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .cab h1 {
+    font-size: 26px;
+    font-weight: 700;
+  }
+  .cab .muted {
+    margin: 2px 0 0;
+  }
+  .cab .marca {
+    margin-right: 4px;
+  }
+  .page-head {
+    display: flex;
+    align-items: center;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .page-head p {
+    margin: 0;
+  }
+  .k {
+    margin: 10px 0 0;
+  }
 
-/* Páginas de inicio y administración */
-.pag { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 14px; }
-.pag.ancha { max-width: 1120px; }
-.cab { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin-bottom: 6px; }
-.cab h1 { font-size: 26px; font-weight: 700; }
-.cab .muted { margin: 2px 0 0; }
-.cab .marca { margin-right: 4px; }
-.page-head { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin: 12px 0; }
-.page-head p { margin: 0; }
-.k { margin: 10px 0 0; }
+  /* Lista de clientes */
+  .clientes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cliente {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .12s;
+  }
+  .cliente:hover {
+    border-color: var(--ink-3);
+  }
+  .cliente.off {
+    background: var(--surface-2);
+  }
+  .cliente .ini {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .cliente .txt {
+    min-width: 0;
+  }
+  .cliente .txt b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    overflow-wrap: anywhere;
+  }
+  .cliente .txt span {
+    display: block;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .cliente .go {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--ink-3);
+  }
+  .cliente:hover .go {
+    color: var(--accent);
+  }
+  @media (max-width: 479px) {
+    .cliente {
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+    }
+    .cliente .badge {
+      grid-column: 2;
+      justify-self: start;
+    }
+    .cliente .go {
+      grid-column: 3;
+      grid-row: 1;
+    }
+  }
 
-/* Lista de clientes */
-.clientes { display: flex; flex-direction: column; gap: 8px; }
-.cliente { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; transition: border-color .12s; }
-.cliente:hover { border-color: var(--ink-3); }
-.cliente.off { background: var(--surface-2); }
-.cliente .ini { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-bg); color: var(--accent); font-family: var(--font-display); font-weight: 700; font-size: 18px; }
-.cliente .txt { min-width: 0; }
-.cliente .txt b { display: block; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
-.cliente .txt span { display: block; color: var(--ink-2); font-size: 13px; }
-.cliente .go { font-family: var(--font-display); font-size: 18px; color: var(--ink-3); }
-.cliente:hover .go { color: var(--accent); }
-@media (max-width: 479px) {
-  .cliente { grid-template-columns: 40px minmax(0, 1fr) auto; }
-  .cliente .badge { grid-column: 2; justify-self: start; }
-  .cliente .go { grid-column: 3; grid-row: 1; }
-}
+  /* Tu cuenta */
+  .cuenta {
+    margin-top: 12px;
+  }
+  .fila {
+    display: flex;
+    gap: 8px 12px;
+    align-items: end;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .fila .field {
+    flex: 1 1 240px;
+    margin: 0;
+  }
 
-/* Tu cuenta */
-.cuenta { margin-top: 12px; }
-.fila { display: flex; gap: 8px 12px; align-items: end; flex-wrap: wrap; margin-bottom: 8px; }
-.fila .field { flex: 1 1 240px; margin: 0; }
-
-/* Accesos de una persona */
-.accesos { display: flex; flex-direction: column; }
-.acceso { display: flex; align-items: center; justify-content: space-between; gap: 8px 14px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--line-2); }
-.acceso:last-child { border-bottom: 0; }
-.acceso select { width: auto; min-width: 160px; }
-
+  /* Accesos de una persona */
+  .accesos {
+    display: flex;
+    flex-direction: column;
+  }
+  .acceso {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 14px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .acceso:last-child {
+    border-bottom: 0;
+  }
+  .acceso select {
+    width: auto;
+    min-width: 160px;
+  }
 }

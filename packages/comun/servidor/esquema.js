@@ -6,7 +6,7 @@
 //  • En una base vacía (p. ej. el sitio de pruebas) crea las tablas del esquema base de la app.
 //  • Crea siempre las tablas comunes de la plataforma (_cuotas, _ajustes; ver TABLAS_COMUNES).
 //  • Añade las columnas NUEVAS y opcionales que falten (ALTER TABLE). Es idempotente.
-import { db, d1Actual } from './db.js';
+import { d1Actual, db } from "./db.js";
 
 /** Tablas que usa la propia librería, iguales en todas las apps. */
 export const TABLAS_COMUNES = `
@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS _ajustes (
 
 /** Las instrucciones de un esquema SQL, sin comentarios (algunos comentarios llevan «;»). */
 export function instrucciones(sql) {
-  return String(sql).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
-    .split(';').map((x) => x.trim()).filter(Boolean);
+  return String(sql).split("\n").map((l) => l.replace(/--.*$/, "")).join("\n")
+    .split(";").map((x) => x.trim()).filter(Boolean);
 }
 
 /**
@@ -36,7 +36,7 @@ export function instrucciones(sql) {
  * testigo: una tabla del esquema base; si no existe, la base está vacía y se crea el esquema base.
  * columnas: [[tabla, columna, tipo], …] ampliaciones posteriores al esquema base.
  */
-export function crearEsquema({ base = '', testigo = null, columnas = [] } = {}) {
+export function crearEsquema({ base = "", testigo = null, columnas = [] } = {}) {
   // Una revisión por base de datos (el binding D1) y por instancia del Worker.
   const revisadas = new WeakMap();
 

@@ -7,23 +7,27 @@
 // Si falla, lanza un Error con el mensaje para el usuario y e.status (0 = sin conexión).
 
 export function crearApi(resolver = (ruta) => ruta) {
-  return async function api(path, { method = 'GET', body } = {}) {
-    const opt = { method, headers: { 'x-app': '1' }, credentials: 'same-origin' };
+  return async function api(path, { method = "GET", body } = {}) {
+    const opt = { method, headers: { "x-app": "1" }, credentials: "same-origin" };
     if (body !== undefined) {
-      opt.headers['content-type'] = 'application/json';
+      opt.headers["content-type"] = "application/json";
       opt.body = JSON.stringify(body);
     }
     let r;
     try {
       r = await fetch(resolver(path), opt);
     } catch {
-      const e = new Error('No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.');
+      const e = new Error(
+        "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.",
+      );
       e.status = 0;
       throw e;
     }
-    const data = (r.headers.get('content-type') || '').includes('application/json') ? await r.json().catch(() => null) : null;
+    const data = (r.headers.get("content-type") || "").includes("application/json")
+      ? await r.json().catch(() => null)
+      : null;
     if (!r.ok) {
-      const e = new Error((data && data.error) || 'Ocurrió un error. Inténtalo de nuevo.');
+      const e = new Error((data && data.error) || "Ocurrió un error. Inténtalo de nuevo.");
       e.status = r.status;
       throw e;
     }
@@ -37,5 +41,5 @@ export function crearApi(resolver = (ruta) => ruta) {
  * Así no se escribe a mano y sigue la variable BASE_PATH del servidor.
  */
 export function basePath(urlArchivo, niveles = 1) {
-  return new URL('../'.repeat(niveles), urlArchivo).pathname.replace(/\/$/, '');
+  return new URL("../".repeat(niveles), urlArchivo).pathname.replace(/\/$/, "");
 }

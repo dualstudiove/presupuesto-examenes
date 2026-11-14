@@ -4,18 +4,33 @@
    --cat-1…5 (colores de categoría: cada app decide qué significa cada una).
    Una app cambia su personalidad redefiniendo estos tokens en su tema.css (capa app.tema), en claro Y en oscuro. */
 :root {
-  --bg: #f3f4f7; --surface: #ffffff; --surface-2: #f8f9fb;
-  --ink: #14161c; --ink-2: #4b5160; --ink-3: #757c8c;
-  --line: #dfe2e9; --line-2: #eceef3;
-  --accent: #3342e8; --accent-ink: #ffffff; --accent-bg: #e8eaff;
-  --cat-1: #cf2f6c; --cat-1-bg: #fde8f0;
-  --cat-2: #2561d6; --cat-2-bg: #e5eefc;
-  --cat-3: #0f7f64; --cat-3-bg: #dff3ec;
-  --cat-4: #a86208; --cat-4-bg: #fcefd9;
-  --cat-5: #6d3fd1; --cat-5-bg: #efe8fc;
-  --ok: #0f7f64; --ok-bg: #dff3ec;
-  --warn: #955700; --warn-bg: #fcefd9;
-  --danger: #c0302a; --danger-bg: #fde9e8;
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --ink: #14161c;
+  --ink-2: #4b5160;
+  --ink-3: #757c8c;
+  --line: #dfe2e9;
+  --line-2: #eceef3;
+  --accent: #3342e8;
+  --accent-ink: #ffffff;
+  --accent-bg: #e8eaff;
+  --cat-1: #cf2f6c;
+  --cat-1-bg: #fde8f0;
+  --cat-2: #2561d6;
+  --cat-2-bg: #e5eefc;
+  --cat-3: #0f7f64;
+  --cat-3-bg: #dff3ec;
+  --cat-4: #a86208;
+  --cat-4-bg: #fcefd9;
+  --cat-5: #6d3fd1;
+  --cat-5-bg: #efe8fc;
+  --ok: #0f7f64;
+  --ok-bg: #dff3ec;
+  --warn: #955700;
+  --warn-bg: #fcefd9;
+  --danger: #c0302a;
+  --danger-bg: #fde9e8;
   --scrim: rgba(20, 22, 28, .45);
   --shadow-pop: 0 12px 32px rgba(20, 22, 28, .18);
   --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -23,36 +38,66 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1015; --surface: #161a21; --surface-2: #1c212a;
-    --ink: #eceff5; --ink-2: #b5bbc9; --ink-3: #8790a3;
-    --line: #2a303b; --line-2: #232832;
-    --accent: #8590ff; --accent-ink: #0e1015; --accent-bg: #242a55;
-    --cat-1: #ff7fae; --cat-1-bg: #3b1d2b;
-    --cat-2: #7aa8ff; --cat-2-bg: #1b2a48;
-    --cat-3: #4fd1ad; --cat-3-bg: #143229;
-    --cat-4: #f2b455; --cat-4-bg: #3b2d12;
-    --cat-5: #b095ff; --cat-5-bg: #2b2248;
-    --ok: #4fd1ad; --ok-bg: #143229;
-    --warn: #f2b455; --warn-bg: #3b2d12;
-    --danger: #ff8680; --danger-bg: #3e1d1b;
+    --bg: #0e1015;
+    --surface: #161a21;
+    --surface-2: #1c212a;
+    --ink: #eceff5;
+    --ink-2: #b5bbc9;
+    --ink-3: #8790a3;
+    --line: #2a303b;
+    --line-2: #232832;
+    --accent: #8590ff;
+    --accent-ink: #0e1015;
+    --accent-bg: #242a55;
+    --cat-1: #ff7fae;
+    --cat-1-bg: #3b1d2b;
+    --cat-2: #7aa8ff;
+    --cat-2-bg: #1b2a48;
+    --cat-3: #4fd1ad;
+    --cat-3-bg: #143229;
+    --cat-4: #f2b455;
+    --cat-4-bg: #3b2d12;
+    --cat-5: #b095ff;
+    --cat-5-bg: #2b2248;
+    --ok: #4fd1ad;
+    --ok-bg: #143229;
+    --warn: #f2b455;
+    --warn-bg: #3b2d12;
+    --danger: #ff8680;
+    --danger-bg: #3e1d1b;
     --scrim: rgba(0, 0, 0, .62);
     --shadow-pop: 0 12px 32px rgba(0, 0, 0, .5);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1015; --surface: #161a21; --surface-2: #1c212a;
-  --ink: #eceff5; --ink-2: #b5bbc9; --ink-3: #8790a3;
-  --line: #2a303b; --line-2: #232832;
-  --accent: #8590ff; --accent-ink: #0e1015; --accent-bg: #242a55;
-  --cat-1: #ff7fae; --cat-1-bg: #3b1d2b;
-  --cat-2: #7aa8ff; --cat-2-bg: #1b2a48;
-  --cat-3: #4fd1ad; --cat-3-bg: #143229;
-  --cat-4: #f2b455; --cat-4-bg: #3b2d12;
-  --cat-5: #b095ff; --cat-5-bg: #2b2248;
-  --ok: #4fd1ad; --ok-bg: #143229;
-  --warn: #f2b455; --warn-bg: #3b2d12;
-  --danger: #ff8680; --danger-bg: #3e1d1b;
+  --bg: #0e1015;
+  --surface: #161a21;
+  --surface-2: #1c212a;
+  --ink: #eceff5;
+  --ink-2: #b5bbc9;
+  --ink-3: #8790a3;
+  --line: #2a303b;
+  --line-2: #232832;
+  --accent: #8590ff;
+  --accent-ink: #0e1015;
+  --accent-bg: #242a55;
+  --cat-1: #ff7fae;
+  --cat-1-bg: #3b1d2b;
+  --cat-2: #7aa8ff;
+  --cat-2-bg: #1b2a48;
+  --cat-3: #4fd1ad;
+  --cat-3-bg: #143229;
+  --cat-4: #f2b455;
+  --cat-4-bg: #3b2d12;
+  --cat-5: #b095ff;
+  --cat-5-bg: #2b2248;
+  --ok: #4fd1ad;
+  --ok-bg: #143229;
+  --warn: #f2b455;
+  --warn-bg: #3b2d12;
+  --danger: #ff8680;
+  --danger-bg: #3e1d1b;
   --scrim: rgba(0, 0, 0, .62);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, .5);
   color-scheme: dark;
@@ -80,8 +125,23 @@
 }
 
 /* Categoría de examen (en ciclo) y estados: cada clase define --c/--cbg (chips) y --sc/--sbg (estados) */
-.cat-1 { --c: var(--cat-1); --cbg: var(--cat-1-bg); }
-.cat-2 { --c: var(--cat-2); --cbg: var(--cat-2-bg); }
-.cat-3 { --c: var(--cat-3); --cbg: var(--cat-3-bg); }
-.cat-4 { --c: var(--cat-4); --cbg: var(--cat-4-bg); }
-.cat-5 { --c: var(--cat-5); --cbg: var(--cat-5-bg); }
+.cat-1 {
+  --c: var(--cat-1);
+  --cbg: var(--cat-1-bg);
+}
+.cat-2 {
+  --c: var(--cat-2);
+  --cbg: var(--cat-2-bg);
+}
+.cat-3 {
+  --c: var(--cat-3);
+  --cbg: var(--cat-3-bg);
+}
+.cat-4 {
+  --c: var(--cat-4);
+  --cbg: var(--cat-4-bg);
+}
+.cat-5 {
+  --c: var(--cat-5);
+  --cbg: var(--cat-5-bg);
+}

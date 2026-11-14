@@ -6,38 +6,38 @@ Nació como el artefacto «Parrilla de Contenido» de claude.ai (del que tambié
 
 ## Direcciones
 
-| Dirección | Qué es |
-|---|---|
-| `dualstudio.app/planifica` | Iniciar sesión. Con un solo cliente se entra directo; con varios, se elige. También está «Tu cuenta» (nombre, contraseña, cerrar sesiones). |
-| `dualstudio.app/planifica/<cliente>` | La parrilla del cliente: Lista, Calendario, Objetivos y Pauta. |
-| `dualstudio.app/planifica/admin` | Clientes y equipo (solo administradores). |
+| Dirección                            | Qué es                                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dualstudio.app/planifica`           | Iniciar sesión. Con un solo cliente se entra directo; con varios, se elige. También está «Tu cuenta» (nombre, contraseña, cerrar sesiones). |
+| `dualstudio.app/planifica/<cliente>` | La parrilla del cliente: Lista, Calendario, Objetivos y Pauta.                                                                              |
+| `dualstudio.app/planifica/admin`     | Clientes y equipo (solo administradores).                                                                                                   |
 
 ## Papeles
 
-| Papel | Qué puede hacer |
-|---|---|
+| Papel             | Qué puede hacer                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Administrador** | Es del equipo de Dual Studio. Ve todos los clientes como editor, crea y archiva clientes, gestiona el equipo y los accesos, e importa datos. |
-| **Editor** | Trabaja en los clientes que tiene asignados. |
-| **Solo lectura** | Ve los clientes asignados sin poder cambiar nada. Sirve, por ejemplo, para que el cliente revise su parrilla. |
+| **Editor**        | Trabaja en los clientes que tiene asignados.                                                                                                 |
+| **Solo lectura**  | Ve los clientes asignados sin poder cambiar nada. Sirve, por ejemplo, para que el cliente revise su parrilla.                                |
 
 Un cliente sin acceso responde como si no existiera, y ninguna consulta cruza clientes. El primer administrador se crea con los secretos `SUPER_EMAIL` y `SUPER_PASSWORD` (ver «Publicar»).
 
 ## Estructura
 
-| Archivo | Qué es |
-|---|---|
-| `src/server.js` | El Worker: `crearServidor()` de `@dualstudio/comun` y las páginas. |
-| `src/rutas.js` | La API de la cuenta y de cada cliente: datos, publicaciones, objetivos, ajustes e imágenes. |
-| `src/admin.js` | La API de administración: clientes, equipo, accesos e importación. |
-| `src/sesion.js` | Sesión y permisos sobre las cuentas compartidas (`comun/servidor/cuentas.js`). |
-| `src/esquema.js` | Las tablas, que la app crea sola: `usuarios`, `clientes`, `accesos`, `publicaciones`, `objetivos`, `imagenes`. |
-| `src/validar.js` | Qué campos y tamaños se aceptan. Publicaciones y objetivos se guardan como JSON. |
-| `src/almacen.js` | Las imágenes, con un almacenamiento intercambiable (hoy D1). |
-| `public/parrilla.html` + `js/parrilla.js` + `css/parrilla.css` | La parrilla, portada del artefacto casi sin cambios. |
-| `public/js/conexion.js` | Puente entre la parrilla y la API. Ofrece la misma interfaz que claude.ai daba al artefacto: datos en vivo, usuario, imágenes y descargas. |
-| `public/index.html`, `admin.html` | Inicio y administración, con los componentes del sistema de diseño. |
-| `public/css/tema.css` | Acento morado. Los formatos usan los colores de categoría del padre, salvo Diseño, que lleva su propio cian. |
-| `construir.js` | Copia jsPDF (local, sin CDN) a `/vendor` al compilar. |
+| Archivo                                                        | Qué es                                                                                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/server.js`                                                | El Worker: `crearServidor()` de `@dualstudio/comun` y las páginas.                                                                         |
+| `src/rutas.js`                                                 | La API de la cuenta y de cada cliente: datos, publicaciones, objetivos, ajustes e imágenes.                                                |
+| `src/admin.js`                                                 | La API de administración: clientes, equipo, accesos e importación.                                                                         |
+| `src/sesion.js`                                                | Sesión y permisos sobre las cuentas compartidas (`comun/servidor/cuentas.js`).                                                             |
+| `src/esquema.js`                                               | Las tablas, que la app crea sola: `usuarios`, `clientes`, `accesos`, `publicaciones`, `objetivos`, `imagenes`.                             |
+| `src/validar.js`                                               | Qué campos y tamaños se aceptan. Publicaciones y objetivos se guardan como JSON.                                                           |
+| `src/almacen.js`                                               | Las imágenes, con un almacenamiento intercambiable (hoy D1).                                                                               |
+| `public/parrilla.html` + `js/parrilla.js` + `css/parrilla.css` | La parrilla, portada del artefacto casi sin cambios.                                                                                       |
+| `public/js/conexion.js`                                        | Puente entre la parrilla y la API. Ofrece la misma interfaz que claude.ai daba al artefacto: datos en vivo, usuario, imágenes y descargas. |
+| `public/index.html`, `admin.html`                              | Inicio y administración, con los componentes del sistema de diseño.                                                                        |
+| `public/css/tema.css`                                          | Acento morado. Los formatos usan los colores de categoría del padre, salvo Diseño, que lleva su propio cian.                               |
+| `construir.js`                                                 | Copia jsPDF (local, sin CDN) a `/vendor` al compilar.                                                                                      |
 
 ## Cómo funciona
 
@@ -50,6 +50,7 @@ Un cliente sin acceso responde como si no existiera, y ninguna consulta cruza cl
 ## Importar una Parrilla de Contenido
 
 Ve a Clientes y equipo → **Importar** en un cliente y elige el archivo `.json` de exportación (`formato: "parrilla-v1"`). La importación:
+
 - suma las publicaciones;
 - reemplaza los objetivos del mismo periodo;
 - guarda las imágenes con un id nuevo;
@@ -68,13 +69,13 @@ npm test
 1. **Bases de datos:** en Cloudflare → Almacenamiento y bases de datos → D1, crea `planifica` y `planifica-pruebas`. Pega sus ID en `wrangler.jsonc` (en `d1_databases` y en `previews.d1_databases`). La app crea sola sus tablas.
 2. **Worker:** en Workers → Crear → Importar un repositorio, elige este repositorio con esta configuración:
 
-   | Campo | Valor |
-   |---|---|
-   | Nombre | `planifica` |
-   | Directorio raíz | `apps/planifica` |
-   | Comando de compilación | `cd ../.. && npm ci` |
-   | Despliegue y vistas previas | Los mismos comandos que Cotízalo |
-   | Rutas a vigilar | `apps/planifica/*`, `packages/*`, `herramientas/*`, `package-lock.json` |
+   | Campo                       | Valor                                                                   |
+   | --------------------------- | ----------------------------------------------------------------------- |
+   | Nombre                      | `planifica`                                                             |
+   | Directorio raíz             | `apps/planifica`                                                        |
+   | Comando de compilación      | `cd ../.. && npm ci`                                                    |
+   | Despliegue y vistas previas | Los mismos comandos que Cotízalo                                        |
+   | Rutas a vigilar             | `apps/planifica/*`, `packages/*`, `herramientas/*`, `package-lock.json` |
 
 3. **Secretos:** en el Worker → Configuración → Variables y secretos:
    - `SESSION_SECRET`: texto aleatorio de 32 caracteres o más.

@@ -2,5 +2,4 @@
    La central usa la identidad base de Dual Studio tal cual: los tokens del padre, sin cambios.
    Cada app del catálogo toma uno de los colores de categoría del padre (--cat-1…5, campo "color" de apps.json).
    Para cambiar un token, defínelo aquí en claro y en oscuro (ver apps/cotizalo/public/css/tema.css). */
-@layer app.tema {
-}
+@layer app.tema {}

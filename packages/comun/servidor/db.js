@@ -27,16 +27,17 @@ export function bindD1(binding) {
 /** El binding D1 enlazado ahora mismo (sirve de clave para recordar qué base ya se revisó). */
 export const d1Actual = () => d1;
 
-const norm = (p = []) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
+const norm = (p = []) =>
+  p.map((v) => (v === undefined ? null : typeof v === "boolean" ? (v ? 1 : 0) : v));
 const stmt = (sql, p) => {
-  if (!d1) throw new Error('La base de datos no está enlazada.');
+  if (!d1) throw new Error("La base de datos no está enlazada.");
   const s = d1.prepare(sql);
   const v = norm(p);
   return v.length ? s.bind(...v) : s;
 };
 
 export const db = {
-  dialect: 'd1',
+  dialect: "d1",
   all: async (sql, p) => (await stmt(sql, p).all()).results ?? [],
   get: async (sql, p) => (await stmt(sql, p).first()) ?? undefined,
   run: async (sql, p) => {
@@ -48,7 +49,10 @@ export const db = {
     const t = {
       all: async (sql, p) => (await stmt(sql, p).all()).results ?? [],
       get: async (sql, p) => (await stmt(sql, p).first()) ?? undefined,
-      run: async (sql, p) => { pendientes.push(stmt(sql, p)); return { changes: undefined }; },
+      run: async (sql, p) => {
+        pendientes.push(stmt(sql, p));
+        return { changes: undefined };
+      },
     };
     const resultado = await fn(t);
     if (pendientes.length) await d1.batch(pendientes); // atómico

@@ -10,5 +10,4 @@
      :root { --cat-1: #…; }
      @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cat-1: #…; } }
      :root[data-theme="dark"] { --cat-1: #…; } */
-@layer app.tema {
-}
+@layer app.tema {}

@@ -1,8 +1,8 @@
-# __TITULO__
+# **TITULO**
 
-__DESCRIPCION__
+**DESCRIPCION**
 
-Vive en **dualstudio.app/__APP__** (Worker `__APP__`). Se creó con `npm run nueva-app` desde la plantilla del monorepo.
+Vive en **dualstudio.app/**APP**** (Worker `__APP__`). Se creó con `npm run nueva-app` desde la plantilla del monorepo.
 
 ## Probar en local
 
@@ -14,14 +14,14 @@ npm test
 
 ## Estructura
 
-| Carpeta | Qué va ahí |
-|---|---|
-| `src/server.js` | El Worker: `crearServidor()` de `@dualstudio/comun` y las páginas. |
-| `src/rutas.js` | La API (`/api/...`). |
-| `src/esquema.js` | Las tablas; la app las crea sola en una base vacía. |
-| `src/env.js` | Variables propias de la app. |
-| `public/` | Páginas, `css/tema.css` (tokens propios), `css/app.css` (componentes propios) y `js/`. |
-| `test/` | Pruebas (`npm test`). |
+| Carpeta          | Qué va ahí                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `src/server.js`  | El Worker: `crearServidor()` de `@dualstudio/comun` y las páginas.                     |
+| `src/rutas.js`   | La API (`/api/...`).                                                                   |
+| `src/esquema.js` | Las tablas; la app las crea sola en una base vacía.                                    |
+| `src/env.js`     | Variables propias de la app.                                                           |
+| `public/`        | Páginas, `css/tema.css` (tokens propios), `css/app.css` (componentes propios) y `js/`. |
+| `test/`          | Pruebas (`npm test`).                                                                  |
 
 Sistema de diseño: `packages/diseno/docs/DESIGN.md` y el catálogo en dualstudio.app/diseno.
 

@@ -7,21 +7,31 @@
      Diseño tiene su propio tono (cian) para no confundirse con el acento morado. */
 @layer app.tema {
   :root {
-    --accent: #6d3fd1; --accent-bg: color-mix(in srgb, #6d3fd1 11%, var(--surface));
-    --fmt-reel: var(--cat-1); --fmt-reel-bg: var(--cat-1-bg);
-    --fmt-carrusel: var(--cat-2); --fmt-carrusel-bg: var(--cat-2-bg);
-    --fmt-foto: var(--cat-3); --fmt-foto-bg: var(--cat-3-bg);
-    --fmt-historia: var(--cat-4); --fmt-historia-bg: var(--cat-4-bg);
-    --fmt-diseno: #0b7590; --fmt-diseno-bg: #ddf1f6;
+    --accent: #6d3fd1;
+    --accent-bg: color-mix(in srgb, #6d3fd1 11%, var(--surface));
+    --fmt-reel: var(--cat-1);
+    --fmt-reel-bg: var(--cat-1-bg);
+    --fmt-carrusel: var(--cat-2);
+    --fmt-carrusel-bg: var(--cat-2-bg);
+    --fmt-foto: var(--cat-3);
+    --fmt-foto-bg: var(--cat-3-bg);
+    --fmt-historia: var(--cat-4);
+    --fmt-historia-bg: var(--cat-4-bg);
+    --fmt-diseno: #0b7590;
+    --fmt-diseno-bg: #ddf1f6;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --accent: #b095ff; --accent-bg: color-mix(in srgb, #b095ff 22%, var(--surface));
-      --fmt-diseno: #59c9e3; --fmt-diseno-bg: #10313b;
+      --accent: #b095ff;
+      --accent-bg: color-mix(in srgb, #b095ff 22%, var(--surface));
+      --fmt-diseno: #59c9e3;
+      --fmt-diseno-bg: #10313b;
     }
   }
   :root[data-theme="dark"] {
-    --accent: #b095ff; --accent-bg: color-mix(in srgb, #b095ff 22%, var(--surface));
-    --fmt-diseno: #59c9e3; --fmt-diseno-bg: #10313b;
+    --accent: #b095ff;
+    --accent-bg: color-mix(in srgb, #b095ff 22%, var(--surface));
+    --fmt-diseno: #59c9e3;
+    --fmt-diseno-bg: #10313b;
   }
 }

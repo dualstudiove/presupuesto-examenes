@@ -1,34 +1,131 @@
 /* ═══════════ Central de Dual Studio: componentes propios (capa app) ═══════════
    Lo común (tokens, base, la píldora de estado .badge, la etiqueta .k) viene del sistema de diseño padre. */
 @layer app {
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: max(48px, 10vh) 16px 40px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .head {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+  }
+  .mark {
+    display: grid;
+    grid-template-columns: repeat(3, 8px);
+    gap: 3px;
+    margin-top: 8px;
+    flex: none;
+  }
+  .mark i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .mark i.on {
+    background: var(--accent);
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  .sub {
+    color: var(--ink-2);
+    margin: 6px 0 0;
+  }
+  .k {
+    margin: 0 0 8px;
+  }
 
-.wrap { max-width: 640px; margin: 0 auto; padding: max(48px, 10vh) 16px 40px; min-height: 100dvh; display: flex; flex-direction: column; }
-.head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 32px; }
-.mark { display: grid; grid-template-columns: repeat(3, 8px); gap: 3px; margin-top: 8px; flex: none; }
-.mark i { width: 8px; height: 8px; border-radius: 2px; background: var(--line); }
-.mark i.on { background: var(--accent); }
-h1 { font-size: 30px; font-weight: 700; line-height: 1.15; }
-.sub { color: var(--ink-2); margin: 6px 0 0; }
-.k { margin: 0 0 8px; }
-
-/* Catálogo de apps (las tarjetas se generan desde apps.json) */
-.apps { display: flex; flex-direction: column; gap: 8px; }
-.app { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; transition: border-color .12s; }
-a.app:hover { border-color: var(--ink-3); }
-.app.off { background: var(--surface-2); }
-.app.off .txt b { color: var(--ink-2); }
-.ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--c); background: var(--cbg); }
-.ico svg { width: 22px; height: 22px; }
-.txt { min-width: 0; }
-.txt b { display: block; font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
-.txt span { display: block; color: var(--ink-2); font-size: 13px; }
-.go { font-family: var(--font-display); font-size: 18px; color: var(--ink-3); }
-a.app:hover .go { color: var(--accent); }
-@media (max-width: 479px) {
-  .app { grid-template-columns: 40px minmax(0, 1fr) auto; row-gap: 8px; }
-  .app .badge { grid-column: 2; justify-self: start; }
-  .app .go { grid-column: 3; grid-row: 1; }
-}
-.foot { margin-top: auto; padding-top: 40px; color: var(--ink-3); font-size: 12px; }
-
+  /* Catálogo de apps (las tarjetas se generan desde apps.json) */
+  .apps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .12s;
+  }
+  a.app:hover {
+    border-color: var(--ink-3);
+  }
+  .app.off {
+    background: var(--surface-2);
+  }
+  .app.off .txt b {
+    color: var(--ink-2);
+  }
+  .ico {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--c);
+    background: var(--cbg);
+  }
+  .ico svg {
+    width: 22px;
+    height: 22px;
+  }
+  .txt {
+    min-width: 0;
+  }
+  .txt b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+  .txt span {
+    display: block;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .go {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--ink-3);
+  }
+  a.app:hover .go {
+    color: var(--accent);
+  }
+  @media (max-width: 479px) {
+    .app {
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      row-gap: 8px;
+    }
+    .app .badge {
+      grid-column: 2;
+      justify-self: start;
+    }
+    .app .go {
+      grid-column: 3;
+      grid-row: 1;
+    }
+  }
+  .foot {
+    margin-top: auto;
+    padding-top: 40px;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
 }

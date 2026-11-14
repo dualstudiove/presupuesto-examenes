@@ -1,6 +1,6 @@
 // Contraseñas, sesiones firmadas, cookies y protección contra fuerza bruta. Común a todas las apps.
-import crypto from 'node:crypto';
-import { env } from './env.js';
+import crypto from "node:crypto";
+import { env } from "./env.js";
 
 // ── Contraseñas: PBKDF2-SHA256 con WebCrypto ──
 // Cloudflare Workers admite como máximo 100 000 iteraciones y limita el tiempo de CPU por petición
@@ -9,12 +9,24 @@ import { env } from './env.js';
 //   s2$<sal>$<hash>          → 100 000 iteraciones (formato original)
 //   s3$<iter>$<sal>$<hash>   → otro número de iteraciones
 const ITER_S2 = 100_000;
-const hex = (u8) => Array.from(u8, (b) => b.toString(16).padStart(2, '0')).join('');
+const hex = (u8) => Array.from(u8, (b) => b.toString(16).padStart(2, "0")).join("");
 const deHex = (h) => Uint8Array.from(h.match(/../g) || [], (x) => parseInt(x, 16));
 
 async function derivar(pw, salt, iter) {
-  const k = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
-  return new Uint8Array(await globalThis.crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, k, 256));
+  const k = await globalThis.crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(pw),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  return new Uint8Array(
+    await globalThis.crypto.subtle.deriveBits(
+      { name: "PBKDF2", hash: "SHA-256", salt, iterations: iter },
+      k,
+      256,
+    ),
+  );
 }
 
 const iguales = (a, b) => {
@@ -26,8 +38,8 @@ const iguales = (a, b) => {
 
 /** Compara dos textos en tiempo constante (claves, firmas). */
 export function igualesTexto(a, b) {
-  const x = Buffer.from(String(a ?? ''));
-  const y = Buffer.from(String(b ?? ''));
+  const x = Buffer.from(String(a ?? ""));
+  const y = Buffer.from(String(b ?? ""));
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
@@ -40,9 +52,11 @@ export async function hashPassword(pw) {
 
 export async function verifyPassword(pw, stored) {
   try {
-    const partes = String(stored).split('$');
-    if (partes[0] === 's2' && partes.length === 3) return iguales(await derivar(pw, deHex(partes[1]), ITER_S2), deHex(partes[2]));
-    if (partes[0] === 's3' && partes.length === 4) {
+    const partes = String(stored).split("$");
+    if (partes[0] === "s2" && partes.length === 3) {
+      return iguales(await derivar(pw, deHex(partes[1]), ITER_S2), deHex(partes[2]));
+    }
+    if (partes[0] === "s3" && partes.length === 4) {
       const iter = Number(partes[1]);
       if (!Number.isInteger(iter) || iter < 10_000 || iter > ITER_S2) return false;
       return iguales(await derivar(pw, deHex(partes[2]), iter), deHex(partes[3]));
@@ -55,7 +69,8 @@ export async function verifyPassword(pw, stored) {
 
 // Hash de relleno (válido, de una clave que nadie conoce) para que el tiempo de respuesta
 // no revele si el correo existe.
-export const HASH_RELLENO = 's2$0102030405060708090a0b0c0d0e0f10$5aa43dd56e91636b235fb6cfdafb7c1c15b530ab09bd54b1b685e7005892d733';
+export const HASH_RELLENO =
+  "s2$0102030405060708090a0b0c0d0e0f10$5aa43dd56e91636b235fb6cfdafb7c1c15b530ab09bd54b1b685e7005892d733";
 
 /** Huella corta del hash: va dentro de la sesión, así que cambiar la contraseña cierra las sesiones abiertas. */
 export const marcaPassword = (hash) => String(hash).slice(-16);
@@ -63,8 +78,9 @@ export const marcaPassword = (hash) => String(hash).slice(-16);
 // ── Sesiones: cookie firmada con HMAC (sin estado en el servidor) ──
 // Para poder cerrarlas a distancia, la app guarda una «versión de sesión» por usuario en su base y la mete
 // en el token (campo sv): al subirla, todas las cookies anteriores dejan de valer.
-const b64 = (b) => Buffer.from(b).toString('base64url');
-const firma = (data) => crypto.createHmac('sha256', env.sessionSecret).update(data).digest('base64url');
+const b64 = (b) => Buffer.from(b).toString("base64url");
+const firma = (data) =>
+  crypto.createHmac("sha256", env.sessionSecret).update(data).digest("base64url");
 
 export function firmarToken(payload, ttlSeg = 12 * 3600) {
   const body = b64(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeg }));
@@ -72,12 +88,12 @@ export function firmarToken(payload, ttlSeg = 12 * 3600) {
 }
 
 export function leerToken(token) {
-  if (typeof token !== 'string') return null;
-  const [body, sig] = token.split('.');
+  if (typeof token !== "string") return null;
+  const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   if (!igualesTexto(sig, firma(body))) return null;
   try {
-    const p = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    const p = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     return p.exp > Date.now() / 1000 ? p : null;
   } catch {
     return null;
@@ -85,10 +101,10 @@ export function leerToken(token) {
 }
 
 /** Cookies de la petición. Una cookie mal codificada se ignora (antes provocaba un error 500). */
-export function parseCookies(header = '') {
+export function parseCookies(header = "") {
   const out = {};
-  for (const part of String(header).split(';')) {
-    const i = part.indexOf('=');
+  for (const part of String(header).split(";")) {
+    const i = part.indexOf("=");
     if (i <= 0) continue;
     try {
       out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
@@ -98,12 +114,12 @@ export function parseCookies(header = '') {
 }
 
 // Por defecto la cookie vale solo dentro de la ruta de la app (BASE_PATH), para no mezclarse con otras apps del mismo dominio.
-export function cookie(name, value, { maxAge, expire, path = env.basePath || '/' } = {}) {
-  const p = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, 'HttpOnly', 'SameSite=Lax'];
-  if (expire) p.push('Max-Age=0', 'Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+export function cookie(name, value, { maxAge, expire, path = env.basePath || "/" } = {}) {
+  const p = [`${name}=${encodeURIComponent(value)}`, `Path=${path}`, "HttpOnly", "SameSite=Lax"];
+  if (expire) p.push("Max-Age=0", "Expires=Thu, 01 Jan 1970 00:00:00 GMT");
   else if (maxAge) p.push(`Max-Age=${maxAge}`);
-  if (env.cookieSecure) p.push('Secure');
-  return p.join('; ');
+  if (env.cookieSecure) p.push("Secure");
+  return p.join("; ");
 }
 
 // ── Protección contra fuerza bruta (en memoria de cada instancia del Worker) ──
@@ -149,6 +165,8 @@ export function limite(key, max, ventanaMs) {
 function purgar() {
   if (intentos.size + cubos.size < 2000) return;
   const ahora = Date.now();
-  for (const [k, e] of intentos) if (e.hasta < ahora && ahora - e.inicio > VENTANA) intentos.delete(k);
+  for (const [k, e] of intentos) {
+    if (e.hasta < ahora && ahora - e.inicio > VENTANA) intentos.delete(k);
+  }
   for (const [k, c] of cubos) if (ahora > c.reinicio) cubos.delete(k);
 }

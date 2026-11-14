@@ -1,34 +1,40 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cotízalo · Iniciar sesión</title>
-  <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="/_ds/diseno/diseno.css">
-  <link rel="stylesheet" href="/css/tema.css">
-  <link rel="stylesheet" href="/css/app.css">
-</head>
-<body>
-  <div class="login" id="root">
-    <div class="card">
-      <img src="/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
-      <h1>Cotízalo</h1>
-      <p class="muted">Ingresa con tu correo y contraseña. Te llevamos a tu panel según tu cuenta.</p>
-      <form id="f" novalidate>
-        <div class="field"><label for="e">Correo</label><input id="e" type="email" autocomplete="username" required></div>
-        <div class="field"><label for="p">Contraseña</label><input id="p" type="password" autocomplete="current-password" required></div>
-        <div id="err" class="notice bad" role="alert" hidden></div>
-        <button class="btn btn-primary btn-lg" type="submit" style="margin-top:4px">Entrar</button>
-      </form>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cotízalo · Iniciar sesión</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="/_ds/diseno/diseno.css">
+    <link rel="stylesheet" href="/css/tema.css">
+    <link rel="stylesheet" href="/css/app.css">
+  </head>
+  <body>
+    <div class="login" id="root">
+      <div class="card">
+        <img src="/img/favicon.svg" alt="" width="48" height="48" style="border-radius:12px">
+        <h1>Cotízalo</h1>
+        <p
+          class="muted">Ingresa con tu correo y contraseña. Te llevamos a tu panel según tu cuenta.</p>
+        <form id="f" novalidate>
+          <div
+            class="field"><label for="e">Correo</label><input id="e" type="email" autocomplete="username" required></div>
+          <div
+            class="field"><label for="p">Contraseña</label><input id="p" type="password" autocomplete="current-password" required></div>
+          <div id="err" class="notice bad" role="alert" hidden></div>
+          <button class="btn btn-primary btn-lg" type="submit"
+            style="margin-top:4px">Entrar</button>
+        </form>
+      </div>
+      <p
+        class="muted small login-pie">¿Eres paciente? Entra por el enlace que te dio tu laboratorio.</p>
     </div>
-    <p class="muted small login-pie">¿Eres paciente? Entra por el enlace que te dio tu laboratorio.</p>
-  </div>
-  <div id="toasts" aria-live="polite"></div>
-  <script type="module" src="/js/inicio.js"></script>
-</body>
+    <div id="toasts" aria-live="polite"></div>
+    <script type="module" src="/js/inicio.js"></script>
+  </body>
 </html>
