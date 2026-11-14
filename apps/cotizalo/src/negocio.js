@@ -1,6 +1,5 @@
 // Lógica de negocio compartida: negocios (tenants), configuración, tasa y presupuestos.
-import { db } from './db.js';
-import { hashPassword } from './auth.js';
+import { db, hashPassword } from '@dualstudio/comun/servidor';
 import { tasaGlobal } from './bcv.js';
 import { HttpError, uuid, nowIso, parteFecha, hoy, sumarDias, placeholders } from './util.js';
 

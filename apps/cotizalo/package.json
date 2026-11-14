@@ -12,7 +12,7 @@
     "db:migrar": "wrangler d1 migrations apply presupuesto --remote",
     "seed": "node --disable-warning=ExperimentalWarning src/seed.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning src/seed.js --demo",
-    "test": "node --disable-warning=ExperimentalWarning --import ./test/registrar-hono.js --test \"test/*.test.js\""
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.js\""
   },
   "dependencies": { "hono": "^4.6.0" },
   "devDependencies": { "wrangler": "^4.0.0" }

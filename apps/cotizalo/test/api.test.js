@@ -47,7 +47,7 @@ const norte = bajo('norte');
 before(async () => {
   const bindings = await crearEntorno();
   const { configurarEnv } = await import('../src/env.js');
-  const { bindD1 } = await import('../src/db.js');
+  const { bindD1 } = await import('@dualstudio/comun/servidor');
   configurarEnv(bindings);
   bindD1(bindings.DB);
   const { sembrar } = await import('../src/seed.js');
@@ -159,7 +159,7 @@ test('no se guardan datos personales: los campos extra se ignoran', async () => 
   const e = cat.examenes[0];
   const r = await demo({ method: 'POST', path: '/api/publico/presupuesto', body: { items: [{ tipo: 'examen', id: e.id }], paciente: { nombre: 'María Pérez', cedula: 'V-12345678' }, nombre: 'María Pérez' } });
   assert.equal(r.status, 200);
-  const { db } = await import('../src/db.js');
+  const { db } = await import('@dualstudio/comun/servidor');
   const cols = (await db.all("SELECT name FROM pragma_table_info('presupuestos')")).map((c) => c.name);
   assert.ok(!cols.some((c) => c === 'nombre' || /cedula|telefono|medico|paciente/.test(c)), `columnas: ${cols}`);
   const todo = JSON.stringify(await db.all('SELECT * FROM presupuestos'));
@@ -248,7 +248,7 @@ test('dashboard: totales, rankings (perfiles aportan exámenes y categorías) y 
   // Otro negocio ve solo lo suyo
   const n = await norte({ method: 'POST', path: '/api/admin/login', body: { email: 'admin@norte.test', password: 'Norte12345' }, jar: 'admin-norte' });
   void n; // puede estar bloqueado por la prueba anterior; el aislamiento se comprueba en SQL:
-  const { db } = await import('../src/db.js');
+  const { db } = await import('@dualstudio/comun/servidor');
   const idNorte = (await db.get("SELECT id FROM negocios WHERE slug = 'norte'")).id;
   const { calcularDashboard } = await import('../src/dashboard.js');
   assert.equal((await calcularDashboard(idNorte, RANGO.desde, RANGO.hasta)).resumen.presupuestos, 0);
@@ -302,7 +302,7 @@ test('superadministrador: crea negocios, valida subdominio y los desactiva', asy
 test('visitas anónimas y cabeceras de seguridad', async () => {
   const r = await demo({ method: 'POST', path: '/api/publico/visita', body: { dispositivo: 'escritorio' } });
   assert.equal(r.status, 200);
-  const { db } = await import('../src/db.js');
+  const { db } = await import('@dualstudio/comun/servidor');
   const cols = (await db.all("SELECT name FROM pragma_table_info('visitas')")).map((c) => c.name);
   assert.deepEqual(cols.sort(), ['creado_en', 'dia', 'dispositivo', 'dow', 'hora', 'id', 'negocio_id'].sort());
   const p = await demo({ path: '/' });

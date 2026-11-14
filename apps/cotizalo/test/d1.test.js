@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { crearEntorno } from './ayudas.js';
 import { configurarEnv } from '../src/env.js';
-import { db, bindD1 } from '../src/db.js';
+import { db, bindD1 } from '@dualstudio/comun/servidor';
 import { sembrar, volcarSql } from '../src/seed.js';
 import { crearPresupuesto } from '../src/negocio.js';
 
@@ -52,7 +52,7 @@ test('el SQL de seed se carga en una base nueva y deja los datos utilizables', a
 });
 
 test('contraseñas: PBKDF2 verifica bien y no acepta otras', async () => {
-  const { hashPassword, verifyPassword, HASH_RELLENO } = await import('../src/auth.js');
+  const { hashPassword, verifyPassword, HASH_RELLENO } = await import('@dualstudio/comun/servidor');
   const h = await hashPassword('Clave-123');
   assert.ok(h.startsWith('s2$'));
   assert.equal(await verifyPassword('Clave-123', h), true);

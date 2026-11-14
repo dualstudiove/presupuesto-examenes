@@ -1,49 +1,17 @@
-// Configuración. En Cloudflare Workers no hay process.env ni sistema de archivos: los valores llegan
-// en los "bindings" de cada petición (wrangler.jsonc → vars, y secretos con `wrangler secret put`).
-// server.js llama a configurarEnv(c.env) al inicio de cada petición (es barato e idempotente).
+// Configuración de Cotízalo: la común de @dualstudio/comun (BASE_PATH, SESSION_SECRET, ENVIRONMENT,
+// TZ_OFFSET_MIN, PBKDF2_ITER) más las variables propias de esta app. Todas viven en el mismo objeto `env`.
+import { env, configurarEnv as configurarComun, normalizarBase, bool } from '@dualstudio/comun/servidor';
 
-const bool = (v, def) => (v === undefined || v === null || v === '' ? def : v === true || v === 'true' || v === '1');
+export { env, normalizarBase };
 
-export const env = {
-  production: false,
-  basePath: '', // ruta donde está montada la app: '' (raíz de su dominio) o '/cotizalo'
-  sessionSecret: '',
-  cookieSecure: false,
-  tzOffsetMin: -240,
-  bcvUrl: 'https://ve.dolarapi.com/v1/dolares/oficial',
-  bcvStaleHours: 36,
-  bcvDisabled: false,
-  cronSecret: '',
-  superEmail: '',
-  superPassword: '',
-  datosEjemplo: false, // botón «Crear negocio de ejemplo» (solo en el sitio de pruebas)
-};
-
-/** '/cotizalo/' | 'cotizalo' | '/' | '' → '/cotizalo' o '' (sin barra final). */
-export function normalizarBase(v) {
-  const s = String(v ?? '').trim().replace(/^\/+|\/+$/g, '');
-  if (!s) return '';
-  if (!/^[a-z0-9][a-z0-9/_-]*$/i.test(s)) throw new Error(`BASE_PATH no válido: «${v}». Usa algo como /cotizalo.`);
-  return `/${s}`;
-}
-
-/** Aplica los bindings de Cloudflare (o un objeto equivalente, p. ej. process.env en pruebas/seed). */
+/** Aplica los bindings de Cloudflare (o un objeto equivalente, p. ej. process.env en pruebas o en el seed). */
 export function configurarEnv(b = {}) {
-  env.production = b.ENVIRONMENT === 'production' || b.NODE_ENV === 'production';
-  env.basePath = normalizarBase(b.BASE_PATH);
-  env.sessionSecret = b.SESSION_SECRET || env.sessionSecret || '';
-  env.cookieSecure = bool(b.COOKIE_SECURE, env.production);
-  env.tzOffsetMin = Number(b.TZ_OFFSET_MIN ?? -240);
-  env.bcvUrl = b.BCV_API_URL || 'https://ve.dolarapi.com/v1/dolares/oficial';
-  env.bcvStaleHours = Number(b.BCV_STALE_HOURS || 36);
-  env.bcvDisabled = bool(b.BCV_DISABLED, false);
-  env.cronSecret = b.CRON_SECRET || '';
-  env.superEmail = b.SUPER_EMAIL || '';
-  env.superPassword = b.SUPER_PASSWORD || '';
-  env.datosEjemplo = bool(b.DATOS_DE_EJEMPLO, false);
-  if (!env.sessionSecret) {
-    if (env.production) throw new Error('Falta el secreto SESSION_SECRET. Agrégalo en Cloudflare (en el Worker: Configuración → Variables y secretos; en el sitio de pruebas: los secretos de las vistas previas) o con: wrangler secret put SESSION_SECRET.');
-    env.sessionSecret = 'solo-desarrollo-no-usar-en-produccion-0123456789';
-  }
-  return env;
+  return configurarComun(b, (v, e) => {
+    e.bcvUrl = v.BCV_API_URL || 'https://ve.dolarapi.com/v1/dolares/oficial';
+    e.bcvStaleHours = Number(v.BCV_STALE_HOURS || 36);
+    e.bcvDisabled = bool(v.BCV_DISABLED, false);
+    e.superEmail = v.SUPER_EMAIL || '';
+    e.superPassword = v.SUPER_PASSWORD || '';
+    e.datosEjemplo = bool(v.DATOS_DE_EJEMPLO, false); // botón «Crear negocio de ejemplo» (solo en el sitio de pruebas)
+  });
 }

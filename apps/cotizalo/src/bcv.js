@@ -1,8 +1,7 @@
 // Tasa oficial del BCV: se consulta a una fuente pública (configurable), se guarda
 // en la base de datos y se usa la última conocida si la consulta falla.
-import { db } from './db.js';
+import { db, rt } from '@dualstudio/comun/servidor';
 import { env } from './env.js';
-import { rt } from './runtime.js';
 import { uuid, nowIso, parteFecha } from './util.js';
 
 /** Extrae { valor, fechaValor } de las respuestas JSON más comunes. */

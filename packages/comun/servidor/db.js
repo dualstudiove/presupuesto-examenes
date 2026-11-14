@@ -13,12 +13,12 @@
 //  • Máximo 100 parámetros "?" por consulta.
 //  • Las claves foráneas siempre están activas.
 // El adaptador es el mismo para pruebas locales: se le pasa cualquier objeto con la API de D1
-// (ver src/db.local.js, que la imita sobre node:sqlite).
+// (ver d1-local.js, que la imita sobre node:sqlite).
 // ─────────────────────────────────────────────────────────────────────────────
 
 let d1 = null;
 
-/** Enlaza la base de datos (binding D1). server.js lo llama en cada petición. */
+/** Enlaza la base de datos (binding D1). crearServidor() lo llama en cada petición. */
 export function bindD1(binding) {
   if (!binding) throw new Error('Falta el binding D1 "DB" (revisa wrangler.jsonc → d1_databases).');
   d1 = binding;

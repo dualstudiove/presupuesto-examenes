@@ -1,10 +1,9 @@
-// Cambios de esquema que la app aplica sola (sin terminal ni `wrangler d1 migrations`).
-// En una base vacía crea primero las tablas del esquema base (src/esquema-base.js).
+// Esquema de Cotízalo que la app aplica sola (mecanismo de @dualstudio/comun: crearEsquema).
+// En una base vacía crea las tablas del esquema base (src/esquema-base.js = migrations/0001_schema.sql);
+// después añade las columnas posteriores de COLUMNAS si faltan.
 //
-// Solo columnas NUEVAS y opcionales: se comprueba si existen y, si no, se añaden con ALTER TABLE.
-// Es idempotente y se revisa una vez por instancia del Worker. El esquema base sigue en
-// migrations/0001_schema.sql; aquí van las ampliaciones posteriores.
-import { db, d1Actual } from './db.js';
+// Solo columnas NUEVAS y opcionales. El esquema base sigue en migrations/0001_schema.sql; aquí van las ampliaciones.
+import { crearEsquema } from '@dualstudio/comun/servidor';
 import { ESQUEMA_BASE } from './esquema-base.js';
 
 export const COLUMNAS = [
@@ -20,45 +19,7 @@ export const COLUMNAS = [
   ['presupuestos', 'origen_detalle', 'TEXT'],
 ];
 
-// Una revisión por base de datos (el binding D1) y por instancia del Worker.
-const revisadas = new WeakMap();
+export const asegurarEsquema = crearEsquema({ base: ESQUEMA_BASE, testigo: 'negocios', columnas: COLUMNAS });
 
-/** binding: la base de datos (el binding D1); por defecto, la que tenga enlazada db.js. */
-export function asegurarEsquema(binding = d1Actual()) {
-  let listo = revisadas.get(binding);
-  if (!listo) {
-    listo = aplicar().catch((e) => {
-      revisadas.delete(binding); // se reintenta en la próxima petición
-      throw e;
-    });
-    revisadas.set(binding, listo);
-  }
-  return listo;
-}
 
-/** Las instrucciones del esquema base, sin comentarios (algunos comentarios llevan «;»). */
-export function instruccionesBase() {
-  return ESQUEMA_BASE.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
-    .split(';').map((x) => x.trim()).filter(Boolean);
-}
 
-async function aplicar() {
-  // Base vacía (p. ej. el sitio de pruebas): se crean las tablas del esquema base.
-  // Todas usan IF NOT EXISTS, así que no tocan una base que ya las tenga.
-  if (!(await db.all('PRAGMA table_info(negocios)')).length) {
-    for (const sql of instruccionesBase()) await db.run(sql);
-  }
-  const tablas = [...new Set(COLUMNAS.map(([t]) => t))];
-  for (const tabla of tablas) {
-    const existentes = new Set((await db.all(`PRAGMA table_info(${tabla})`)).map((c) => c.name));
-    for (const [t, col, tipo] of COLUMNAS) {
-      if (t !== tabla || existentes.has(col)) continue;
-      try {
-        await db.run(`ALTER TABLE ${t} ADD COLUMN ${col} ${tipo}`);
-      } catch (e) {
-        // Otra instancia pudo añadirla a la vez: no es un error.
-        if (!/duplicate column/i.test(String(e?.message || e))) throw e;
-      }
-    }
-  }
-}

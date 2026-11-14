@@ -1,10 +1,9 @@
 // Panel de la plataforma (dominio raíz): crear negocios, administradores y gestionar la tasa.
-import { db } from '../db.js';
 import { env } from '../env.js';
 import {
-  verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
+  db, verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
   bloqueoRestante, registrarFallo, limpiarFallos, limite,
-} from '../auth.js';
+} from '@dualstudio/comun/servidor';
 import { crearNegocio, invalidarNegocios } from '../negocio.js';
 import { pasoEjemplo } from '../ejemplo.js';
 import { estadoConsulta, guardarTasaManualGlobal, refrescarTasa, tasaGlobal } from '../bcv.js';

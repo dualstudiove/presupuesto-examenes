@@ -1,8 +1,7 @@
 // Inicio de sesión único (página principal de la app): según el correo y la contraseña,
 // abre el panel del superadministrador o el del negocio que administra esa persona.
-import { db } from '../db.js';
 import { env } from '../env.js';
-import { verifyPassword, HASH_RELLENO, bloqueoRestante, registrarFallo, limpiarFallos, limite } from '../auth.js';
+import { db, verifyPassword, HASH_RELLENO, bloqueoRestante, registrarFallo, limpiarFallos, limite } from '@dualstudio/comun/servidor';
 import { HttpError, str } from '../util.js';
 import { cookieSesionSuper, superDe } from './super.js';
 import { cookieSesionAdmin } from './admin.js';

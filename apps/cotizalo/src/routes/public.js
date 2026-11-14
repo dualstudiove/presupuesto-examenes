@@ -1,7 +1,6 @@
 // Rutas públicas (pacientes). Solo lectura del catálogo + generación de presupuestos.
-import { db } from '../db.js';
+import { db, limite } from '@dualstudio/comun/servidor';
 import { env } from '../env.js';
-import { limite } from '../auth.js';
 import { refrescarSiHaceFalta, refrescarTasa, tasaGlobal } from '../bcv.js';
 import { getConfig, resolverTasa, crearPresupuesto, esOrigenOtro } from '../negocio.js';
 import { HttpError, uuid, nowIso, parteFecha } from '../util.js';

@@ -1,11 +1,9 @@
 // Panel de administración de UN negocio. Todas las consultas filtran por negocio_id.
-import { db } from '../db.js';
 import { env } from '../env.js';
 import {
-  verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
+  db, Raw, verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
   bloqueoRestante, registrarFallo, limpiarFallos, limite,
-} from '../auth.js';
-import { Raw } from '../http.js';
+} from '@dualstudio/comun/servidor';
 import { getConfig, tocarPrecios, invalidarNegocios } from '../negocio.js';
 import { calcularDashboard, csvDashboard } from '../dashboard.js';
 import { tasaGlobal } from '../bcv.js';

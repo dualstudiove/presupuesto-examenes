@@ -4,7 +4,7 @@
 // Se crea POR PASOS (un paso por petición): Cloudflare limita las consultas a la base por petición,
 // así que cada paso hace pocas. La pantalla del superadministrador encadena los pasos con una barra
 // de progreso. Solo está disponible si la variable DATOS_DE_EJEMPLO = "true" (sitio de pruebas).
-import { db } from './db.js';
+import { db } from '@dualstudio/comun/servidor';
 import { crearNegocio, crearPresupuesto } from './negocio.js';
 import { CATALOGO, PERFILES, PATOLOGIA } from './datos-ejemplo.js';
 import { HttpError, uuid, nowIso, parteFecha } from './util.js';

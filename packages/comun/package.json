@@ -1,0 +1,16 @@
+{
+  "name": "@dualstudio/comun",
+  "version": "1.0.0",
+  "description": "Lógica compartida de las apps de Dual Studio: servidor (Workers + Hono + D1) y utilidades del navegador. Sin nada visual.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./servidor": "./servidor/index.js",
+    "./servidor/d1-local": "./servidor/d1-local.js",
+    "./web/*": "./web/*"
+  },
+  "scripts": {
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.js\""
+  },
+  "dependencies": { "hono": "^4.6.0" }
+}

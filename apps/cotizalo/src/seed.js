@@ -15,8 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env, configurarEnv } from './env.js';
-import { db, bindD1 } from './db.js';
-import { hashPassword } from './auth.js';
+import { db, bindD1, hashPassword } from '@dualstudio/comun/servidor';
 import { crearNegocio, crearPresupuesto } from './negocio.js';
 import { uuid, nowIso, parteFecha } from './util.js';
 import { asegurarEsquema, COLUMNAS } from './esquema.js';
@@ -175,8 +174,8 @@ export async function volcarSql() {
 }
 
 async function main() {
-  configurarEnv(process.env);
-  const { crearD1Local } = await import('./db.local.js');
+  configurarEnv({ ...process.env, ENVIRONMENT: 'development' }); // el seed no firma sesiones: no necesita SESSION_SECRET
+  const { crearD1Local } = await import('@dualstudio/comun/servidor/d1-local');
   const d1 = crearD1Local(':memory:');
   await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
   bindD1(d1);

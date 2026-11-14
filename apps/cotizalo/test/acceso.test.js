@@ -25,7 +25,7 @@ const login = (email, password, jar = {}) => pedir('/cotizalo/api/login', { meth
 before(async () => {
   const bindings = await crearEntorno({ BASE_PATH: '/cotizalo' });
   const { configurarEnv } = await import('../src/env.js');
-  const { bindD1 } = await import('../src/db.js');
+  const { bindD1 } = await import('@dualstudio/comun/servidor');
   configurarEnv(bindings);
   bindD1(bindings.DB);
   const { sembrar } = await import('../src/seed.js');

@@ -1,5 +1,5 @@
 // Estadísticas por negocio. Todas las consultas filtran por negocio_id y rango de días.
-import { db } from './db.js';
+import { db } from '@dualstudio/comun/servidor';
 import { csv, sumarDias } from './util.js';
 
 const pct = (n, total) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0);

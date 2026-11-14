@@ -20,7 +20,7 @@ const pedir = async (path, { method = 'GET', body, cookie } = {}) => {
 before(async () => {
   const bindings = await crearEntorno({ BASE_PATH: '/cotizalo/' }); // con barra final a propósito: se normaliza
   const { configurarEnv } = await import('../src/env.js');
-  const { bindD1 } = await import('../src/db.js');
+  const { bindD1 } = await import('@dualstudio/comun/servidor');
   configurarEnv(bindings);
   bindD1(bindings.DB);
   const { sembrar } = await import('../src/seed.js');
