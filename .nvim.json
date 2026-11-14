@@ -1,0 +1,18 @@
+{
+    "adjust_windows": true,
+    "colorscheme": "catppuccin-macchiato",
+    "extends": ["web"],
+    "filetypes_by_treesitter_parser": [],
+    "format_on_save": true,
+    "formatters_by_filetype": [],
+    "lint_on_save": true,
+    "linters_by_filetype": [],
+    "lsp_config": [],
+    "override": [],
+    "shell": "cmd",
+    "task_f5": "default_build",
+    "task_f6": "default_run",
+    "task_f7": "default_test",
+    "task_f8": "none",
+    "tasks": []
+}
