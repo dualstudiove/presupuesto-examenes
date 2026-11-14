@@ -10,6 +10,7 @@
     "dev:cotizalo": "npm run dev -w cotizalo",
     "dev:central": "npm run dev -w central",
     "deploy:cotizalo": "npm run deploy -w cotizalo",
-    "deploy:central": "npm run deploy -w central"
+    "deploy:central": "npm run deploy -w central",
+    "nueva-app": "node herramientas/nueva-app.js"
   }
 }

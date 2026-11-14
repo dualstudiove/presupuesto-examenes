@@ -1,0 +1,14 @@
+/* ═══════════ __TITULO__: componentes propios (capa app) ═══════════
+   Solo lo que únicamente esta app necesita. Colores siempre con var(--…).
+   Si un componente aparece también en otra app, súbelo a packages/diseno/componentes.css. */
+@layer app {
+
+.pagina { max-width: 640px; margin: 0 auto; padding: max(48px, 10vh) 16px 40px; display: flex; flex-direction: column; gap: 8px; }
+.pagina h1 { font-size: 30px; font-weight: 700; }
+.pagina > .card { margin-top: 16px; }
+.eco { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.eco .field { flex: 1 1 220px; margin: 0; }
+.eco .btn { min-height: 38px; }
+@media (max-width: 719px) { .eco .btn { min-height: 42px; } }
+
+}

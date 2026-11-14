@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { jsonc, basePathDe } from '../wrangler.js';
 import { construir } from '../construir.js';
+import { crearApp, leerArgs } from '../nueva-app.js';
+import { execFileSync } from 'node:child_process';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ds-herramientas-'));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
@@ -56,3 +58,43 @@ test('la central genera su catálogo desde apps.json', async () => {
   const real = JSON.parse(fs.readFileSync(path.join(central, 'apps.json'), 'utf8'));
   assert.ok(tarjetas(real.apps, ICONOS).length > 0, 'apps.json real es válido');
 });
+
+// ── nueva-app ──
+const RAIZ_REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+
+test('nueva-app: valida el nombre, el ícono y el color', () => {
+  assert.throws(() => crearApp({ nombre: 'Mi App' }), /minúsculas/);
+  assert.throws(() => crearApp({ nombre: 'diseno' }), /reservado/);
+  assert.throws(() => crearApp({ nombre: 'otra', icono: 'nada', destino: path.join(tmp, 'x') }), /ícono/);
+  assert.throws(() => crearApp({ nombre: 'otra', color: 'rojo', destino: path.join(tmp, 'x') }), /color/);
+  assert.throws(() => crearApp({ nombre: 'cotizalo' }), /Ya existe/);
+  const a = leerArgs(['planifica', '--titulo', 'Planifica', '--sin-base']);
+  assert.equal(a.nombre, 'planifica');
+  assert.equal(a.titulo, 'Planifica');
+  assert.ok(a.flags.has('sin-base'));
+});
+
+for (const sinBase of [false, true]) {
+  test(`nueva-app: la app generada${sinBase ? ' sin base' : ''} compila y pasa sus pruebas`, async () => {
+    const nombre = `zz-prueba${sinBase ? '-sb' : ''}`;
+    const destino = path.join(RAIZ_REPO, 'apps', nombre);
+    try {
+      crearApp({ nombre, titulo: 'Prueba', color: 'cat-4', flags: new Set(['sin-catalogo', ...(sinBase ? ['sin-base'] : [])]) });
+      const wr = jsonc(fs.readFileSync(path.join(destino, 'wrangler.jsonc'), 'utf8'));
+      assert.equal(wr.name, nombre);
+      assert.equal(wr.vars.BASE_PATH, `/${nombre}`);
+      assert.equal(Boolean(wr.d1_databases), !sinBase);
+      assert.equal(Boolean(wr.previews.d1_databases), !sinBase);
+      assert.ok(wr.assets.run_worker_first.includes(`!/${nombre}/_ds/*`));
+      assert.match(fs.readFileSync(path.join(destino, 'public/css/tema.css'), 'utf8'), /--accent: #a86208/);
+      for (const f of fs.readdirSync(destino, { recursive: true })) {
+        const p = path.join(destino, f);
+        if (fs.statSync(p).isFile()) assert.doesNotMatch(fs.readFileSync(p, 'utf8'), /__[A-Z_]+__/, f);
+      }
+      await construir(destino);
+      execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '--test', 'test/app.test.js'], { cwd: destino, stdio: 'pipe' });
+    } finally {
+      fs.rmSync(destino, { recursive: true, force: true });
+    }
+  });
+}

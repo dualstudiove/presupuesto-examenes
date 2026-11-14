@@ -1,0 +1,16 @@
+{
+  "name": "__APP__",
+  "version": "0.1.0",
+  "description": "__TITULO__: __DESCRIPCION__",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "construir": "node ../../herramientas/construir.js .",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.js\""
+  },
+  "dependencies": { "@dualstudio/comun": "*", "hono": "^4.6.0" },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

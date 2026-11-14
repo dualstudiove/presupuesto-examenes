@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>__TITULO__</title>
+  <meta name="description" content="__DESCRIPCION__">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/_ds/diseno/diseno.css">
+  <link rel="stylesheet" href="/css/tema.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="pagina">
+    <p class="k">Dual Studio</p>
+    <h1>__TITULO__</h1>
+    <p class="muted">__DESCRIPCION__</p>
+    <div class="card">
+      <h3>La app ya funciona</h3>
+      <p id="estado" class="muted">Consultando el servidor…</p>
+      <form id="f" class="eco" novalidate>
+        <div class="field"><label for="t">Prueba la API</label><input id="t" type="text" placeholder="Escribe algo" autocomplete="off"></div>
+        <button class="btn btn-primary" type="submit">Enviar</button>
+      </form>
+    </div>
+  </main>
+  <div id="toasts" aria-live="polite"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

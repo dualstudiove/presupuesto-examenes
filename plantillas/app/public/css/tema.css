@@ -1,0 +1,10 @@
+/* ═══════════ __TITULO__: tema (capa app.tema) ═══════════
+   La personalidad de la app sobre el sistema de diseño padre (packages/diseno). Aquí solo se redefinen tokens,
+   siempre en claro Y en oscuro. Reglas: packages/diseno/docs/DESIGN.md · catálogo: dualstudio.app/diseno */
+@layer app.tema {
+  :root { --accent: __ACENTO_CLARO__; --accent-bg: color-mix(in srgb, __ACENTO_CLARO__ 11%, var(--surface)); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --accent: __ACENTO_OSCURO__; --accent-bg: color-mix(in srgb, __ACENTO_OSCURO__ 22%, var(--surface)); }
+  }
+  :root[data-theme="dark"] { --accent: __ACENTO_OSCURO__; --accent-bg: color-mix(in srgb, __ACENTO_OSCURO__ 22%, var(--surface)); }
+}

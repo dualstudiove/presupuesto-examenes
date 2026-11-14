@@ -1,0 +1,52 @@
+{
+  // __TITULO__ en Cloudflare Workers (+ D1). Generado con `npm run nueva-app`.
+  // Documentación: https://developers.cloudflare.com/workers/wrangler/configuration/
+  "name": "__APP__",
+  "main": "src/server.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"], // Buffer y node:crypto (firma de las sesiones)
+
+  // Antes de `wrangler dev` y `wrangler deploy` (también en Cloudflare) se arma .publicar/ (herramientas/construir.js).
+  "build": {
+    "command": "npm run construir",
+    "watch_dir": ["public", "../../packages/diseno", "../../packages/comun/web"]
+  },
+
+  // Las páginas pasan por el Worker; los archivos fijos los sirve Cloudflare directamente (no gastan peticiones).
+  // Las rutas llevan BASE_PATH delante: si cambias BASE_PATH, cámbialas también.
+  "assets": {
+    "directory": "./.publicar",
+    "binding": "ASSETS",
+    "run_worker_first": ["/__APP__", "/__APP__/*", "!/__APP__/css/*", "!/__APP__/js/*", "!/__APP__/img/*", "!/__APP__/_ds/*"],
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  //__D1_INICIO__
+  // Base de datos. Créala con:  npx wrangler d1 create __APP__   y pega aquí el database_id.
+  // (En local, con `wrangler dev`, sirve cualquier valor.)
+  "d1_databases": [
+    { "binding": "DB", "database_name": "__APP__", "database_id": "PENDIENTE-pega-aqui-el-id" }
+  ],
+  //__D1_FIN__
+
+  // Variables públicas. El secreto SESSION_SECRET NO va aquí: `wrangler secret put SESSION_SECRET`.
+  "vars": {
+    // Si la app se muda a su propio dominio, pon "" y cambia "routes" y "run_worker_first".
+    "BASE_PATH": "/__APP__",
+    "ENVIRONMENT": "production",
+    "TZ_OFFSET_MIN": "-240"
+  },
+
+  // dualstudio.app/__APP__ y todo lo que cuelga de ahí. El resto de dualstudio.app lo atiende la central.
+  "routes": [
+    { "pattern": "dualstudio.app/__APP__", "zone_name": "dualstudio.app" },
+    { "pattern": "dualstudio.app/__APP__/*", "zone_name": "dualstudio.app" }
+  ],
+  "workers_dev": false,
+  "preview_urls": true,
+
+  // Sitio de pruebas (Cloudflare «Previews»): cada cambio en una rama que no es master se publica aparte.
+  "previews": {
+    "vars": { "BASE_PATH": "/__APP__", "ENVIRONMENT": "production", "TZ_OFFSET_MIN": "-240" }//__D1_PREVIEWS__
+  }
+}
