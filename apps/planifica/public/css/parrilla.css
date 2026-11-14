@@ -1977,25 +1977,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .cli a {
-    color: var(--ink-3);
-    text-decoration: none;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-  .cli a:hover {
-    color: var(--accent);
-  }
+  .volver,
   .salir {
     flex: none;
+    white-space: nowrap;
   }
   .brand a {
     color: inherit;
     text-decoration: none;
   }
   @media (max-width: 560px) {
-    .cli a {
+    .volver .vl {
       display: none;
+    }
+    /* En el móvil la cuenta de Instagram baja a su propia línea, para que quepan los botones */
+    .top-row {
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
+    .cli {
+      flex: 1;
+    }
+    .acct {
+      order: 10;
+      flex: 1 0 100%;
     }
   }
   .cargando {

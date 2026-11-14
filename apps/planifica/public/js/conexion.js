@@ -79,12 +79,10 @@ function pintarCabecera() {
   if (nombre) nombre.textContent = c.nombre;
   const nuevo = document.getElementById("newPost");
   if (nuevo) nuevo.hidden = estado.rol !== "editor"; // solo lectura: no puede crear
-  const cambiar = document.getElementById("cambiar");
-  if (cambiar) {
-    cambiar.href = `${BASE}/`;
-    cambiar.hidden = !(estado.navegacion.clientes > 1 || estado.navegacion.es_admin);
-    if (estado.navegacion.es_admin) cambiar.textContent = "Clientes y equipo";
-  }
+  // «← Mis clientes» vuelve al inicio (lista de clientes, tu cuenta y, si eres administrador, el equipo);
+  // «Salir» cierra la sesión.
+  const volver = document.getElementById("volver");
+  if (volver) volver.href = `${BASE}/`;
 }
 
 async function refrescar() {
