@@ -1,6 +1,6 @@
 {
   // Página central de dualstudio.app: solo archivos estáticos (sin código de servidor).
-  // Desplegar desde la raíz del repo:  npm run deploy:central
+  // Desplegar desde la raíz del repo:  npm run deploy:central  (o desde apps/central: npm run deploy)
   "name": "dualstudio",
   "compatibility_date": "2025-09-01",
   "assets": {

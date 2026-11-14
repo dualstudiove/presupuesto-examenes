@@ -1,0 +1,12 @@
+{
+  "name": "central",
+  "version": "1.0.0",
+  "description": "Página central de dualstudio.app: catálogo de apps (solo archivos estáticos).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8788",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

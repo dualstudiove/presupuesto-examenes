@@ -1,20 +1,15 @@
 {
-  "name": "presupuesto-examenes-cloudflare",
-  "version": "2.0.0",
-  "description": "Presupuestos de exámenes para laboratorios clínicos (multinegocio) sobre Cloudflare Workers + Hono + D1.",
+  "name": "dualstudio-apps",
   "private": true,
+  "description": "Dual Studio Apps: monorepo con las apps de dualstudio.app y sus librerías compartidas.",
   "type": "module",
   "engines": { "node": ">=22.13" },
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:central": "wrangler deploy -c central/wrangler.jsonc",
-    "db:migrar:local": "wrangler d1 migrations apply presupuesto --local",
-    "db:migrar": "wrangler d1 migrations apply presupuesto --remote",
-    "seed": "node --disable-warning=ExperimentalWarning src/seed.js",
-    "seed:demo": "node --disable-warning=ExperimentalWarning src/seed.js --demo",
-    "test": "node --disable-warning=ExperimentalWarning --import ./test/registrar-hono.js --test \"test/*.test.js\""
-  },
-  "dependencies": { "hono": "^4.6.0" },
-  "devDependencies": { "wrangler": "^4.0.0" }
+    "test": "npm run test --workspaces --if-present",
+    "dev:cotizalo": "npm run dev -w cotizalo",
+    "dev:central": "npm run dev -w central",
+    "deploy:cotizalo": "npm run deploy -w cotizalo",
+    "deploy:central": "npm run deploy -w central"
+  }
 }
