@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Planifica</title>
+  <meta name="description" content="Parrilla de contenido: planificación, producción y objetivos.">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/_ds/diseno/diseno.css">
+  <link rel="stylesheet" href="/css/tema.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/parrilla.css">
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <a href="/" class="mark" aria-label="Planifica: tus clientes"><i class="on"></i><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i class="on"></i></a>
+        <span class="brand-name">Planifica</span>
+      </div>
+      <div class="cli"><b id="cliente-nombre"></b><a href="/" id="cambiar" hidden>Cambiar de cliente</a></div>
+      <div class="acct">
+        <label class="sr" for="acct">Cuenta de Instagram</label>
+        <input id="acct" type="text" placeholder="@tu_cuenta" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn primary" id="newPost" type="button" data-act="new">+ <span class="nw-long">Nuevo post</span><span class="nw-short">Nuevo</span></button>
+      <button class="btn ghost sm salir" id="salir" type="button">Salir</button>
+    </div>
+    <nav class="tabs" aria-label="Vistas">
+      <a href="#lista" data-nav="lista">Lista</a>
+      <a href="#calendario" data-nav="calendario">Calendario</a>
+      <a href="#objetivos" data-nav="objetivos">Objetivos</a>
+      <a href="#pauta" data-nav="pauta">Pauta</a>
+    </nav>
+  </header>
+  <main id="main"><p class="cargando">Cargando…</p></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:20px">Esta aplicación necesita JavaScript para funcionar.</p></noscript>
+<script src="/vendor/jspdf.umd.min.js"></script>
+<script type="module" src="/js/conexion.js"></script>
+<script type="module" src="/js/parrilla.js"></script>
+</body>
+</html>

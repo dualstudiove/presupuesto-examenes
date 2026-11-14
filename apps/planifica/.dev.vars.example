@@ -1,0 +1,7 @@
+# Copia este archivo como .dev.vars (solo desarrollo local con `wrangler dev`; no se sube a Git).
+# ENVIRONMENT=development: cookies sin «Secure» (http://localhost) y, si falta SESSION_SECRET, uno de desarrollo.
+ENVIRONMENT=development
+SESSION_SECRET=cambia-esto-por-un-texto-largo-y-aleatorio-de-32-o-mas-caracteres
+# Para tener un administrador en local (se crea solo al arrancar):
+# SUPER_EMAIL=admin@dualstudio.test
+# SUPER_PASSWORD=Admin12345

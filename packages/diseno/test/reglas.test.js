@@ -49,6 +49,12 @@ for (const app of apps) {
     assert.match(tema.trim(), /^@layer app\.tema \{[\s\S]*\}$/, 'tema.css debe ser un único @layer app.tema { … }');
     assert.match(propio.trim(), /^@layer app \{[\s\S]*\}$/, 'app.css debe ser un único @layer app { … }');
     assert.doesNotMatch(propio, COLOR_LITERAL, 'app.css: usa var(--…), los colores van en tema.css');
+    // Hojas propias de una sola página (p. ej. parrilla.css): mismas reglas que app.css
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.css') && !['tema.css', 'app.css'].includes(x))) {
+      const css = sinComentarios(leer(dir, f));
+      assert.match(css.trim(), /^@layer app \{[\s\S]*\}$/, `${f} debe ser un único @layer app { … }`);
+      assert.doesNotMatch(css, COLOR_LITERAL, `${f}: usa var(--…)`);
+    }
   });
 
   test(`${app}: sus páginas cargan el padre antes que sus hojas`, () => {

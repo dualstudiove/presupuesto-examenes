@@ -52,7 +52,8 @@ export function conSeguridad(res) {
 // Detrás de Cloudflare la IP real llega en CF-Connecting-IP (Cloudflare la sobrescribe: el cliente no puede falsearla).
 const clientIp = (h) => h['cf-connecting-ip'] || String(h['x-forwarded-for'] || '').split(',')[0].trim() || 'desconocida';
 
-async function leerJson(req, max = 400_000) {
+async function leerJson(req, max) {
+  max = max || 400_000;
   const largo = Number(req.headers.get('content-length') || 0);
   if (largo > max) throw new HttpError(413, 'La solicitud es demasiado grande.');
   const buf = await req.arrayBuffer();
@@ -134,7 +135,7 @@ export function crearServidor({
     if (r.method !== 'GET') {
       // Cabecera propia: un formulario de otro sitio no puede enviarla (requeriría CORS).
       if (!r.opts.noCsrf && headers['x-app'] !== '1') throw new HttpError(403, 'Solicitud no permitida.');
-      ctx.body = await leerJson(req);
+      ctx.body = await leerJson(req, r.opts.maxBody); // opts.maxBody: bytes (por defecto 400 000)
     }
     if (r.opts.auth) ctx.usuario = await r.opts.auth(ctx);
 

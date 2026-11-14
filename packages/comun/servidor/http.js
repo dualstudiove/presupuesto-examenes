@@ -24,7 +24,7 @@ export class Router {
     this.routes = [];
   }
 
-  /** add(método, '/ruta/:param', { auth, noCsrf, ...opciones propias de la app }, handler) */
+  /** add(método, '/ruta/:param', { auth, noCsrf, maxBody, ...opciones propias de la app }, handler) */
   add(method, path, opts, handler) {
     if (typeof opts === 'function') {
       handler = opts;
