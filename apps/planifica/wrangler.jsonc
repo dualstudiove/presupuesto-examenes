@@ -24,7 +24,7 @@
   // Base de datos. Créala con:  npx wrangler d1 create planifica   y pega aquí el database_id.
   // (En local, con `wrangler dev`, sirve cualquier valor.)
   "d1_databases": [
-    { "binding": "DB", "database_name": "planifica", "database_id": "PENDIENTE-pega-aqui-el-id" }
+    { "binding": "DB", "database_name": "planifica", "database_id": "4e167364-7880-49ae-af49-0e42de886686" }
   ],
 
   // Variables públicas. El secreto SESSION_SECRET NO va aquí: `wrangler secret put SESSION_SECRET`.
