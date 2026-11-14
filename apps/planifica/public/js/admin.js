@@ -226,7 +226,7 @@ function importar(c) {
     titulo: `Importar en ${c.nombre}`,
     html:
       `<p>Elige el archivo de exportación de una <b>Parrilla de Contenido</b> (.json). Se suman sus publicaciones, objetivos e imágenes a este cliente; los objetivos del mismo mes o trimestre se reemplazan.</p>
-      <div class="field"><label for="fi">Archivo</label><input id="fi" type="file" accept="application/json,.json"></div>
+      <div class="field"><label for="fi">Archivo</label><input id="fi" type="file"><span class="hint">El archivo .json de la exportación. Si no lo ves, revisa la carpeta de Descargas.</span></div>
       <p class="muted small" id="fi-r"></p>`,
     acciones: [
       { texto: "Cancelar", onClick: (cerrar) => cerrar() },
@@ -241,10 +241,13 @@ function importar(c) {
               throw new Error("El archivo es demasiado grande (máximo 7 MB).");
             }
             let datos;
+            // Sin filtro de tipo en el selector (algunos móviles ocultan los .json): se valida aquí.
             try {
               datos = JSON.parse(await f.text());
             } catch {
-              throw new Error("El archivo no es un JSON válido.");
+              throw new Error(
+                "Ese archivo no es una exportación de la Parrilla de Contenido (debe ser el .json que se descargó).",
+              );
             }
             const r = await api("/api/admin/importar", {
               method: "POST",
