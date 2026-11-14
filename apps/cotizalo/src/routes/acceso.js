@@ -6,7 +6,9 @@ import { HttpError, str } from '../util.js';
 import { cookieSesionSuper, superDe } from './super.js';
 import { cookieSesionAdmin } from './admin.js';
 
-const MAX_NEGOCIOS = 10; // tope de cuentas de administrador con el mismo correo que se comprueban
+// Tope de cuentas de administrador con el mismo correo que se comprueban: cada una cuesta una verificación de
+// contraseña (CPU), y el plan gratuito de Workers da 10 ms por petición.
+const MAX_NEGOCIOS = 5;
 
 export function registrarAcceso(r) {
   /**
@@ -24,9 +26,9 @@ export function registrarAcceso(r) {
     if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
 
     const base = env.basePath;
-    const sup = await db.get('SELECT id, email, password_hash FROM superadmins WHERE email = ?', [email]);
+    const sup = await db.get('SELECT id, email, password_hash, sesion_version FROM superadmins WHERE email = ?', [email]);
     const admins = await db.all(
-      `SELECT u.id, u.password_hash, n.id AS nid, n.slug, n.nombre, n.activo AS negocio_activo
+      `SELECT u.id, u.password_hash, u.sesion_version, n.id AS nid, n.slug, n.nombre, n.activo AS negocio_activo
          FROM usuarios_admin u JOIN negocios n ON n.id = u.negocio_id
         WHERE u.email = ? AND u.activo = 1 ORDER BY n.nombre LIMIT ${MAX_NEGOCIOS}`,
       [email],

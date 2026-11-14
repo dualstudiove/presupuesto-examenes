@@ -416,7 +416,9 @@ async function pConfig(page) {
     ${A.me.super ? '' : `<div class="card" style="max-width:760px"><h3>Seguridad</h3>
       <form id="fpw" novalidate><div class="row"><div class="field"><label for="pa">Contraseña actual</label><input id="pa" type="password" autocomplete="current-password"></div>
         <div class="field"><label for="pn">Contraseña nueva</label><input id="pn" type="password" autocomplete="new-password" minlength="8"><span class="hint">Mínimo 8 caracteres.</span></div></div>
-        <button class="btn" type="submit">Cambiar contraseña</button></form></div>`}`;
+        <button class="btn" type="submit">Cambiar contraseña</button></form>
+      <p class="muted small" style="margin:16px 0 8px">¿Entraste desde un equipo ajeno o crees que alguien más tiene tu sesión? Ciérrala en todos los demás navegadores; aquí sigues dentro.</p>
+      <button class="btn" type="button" id="cerrar-otras">${icon('out')} Cerrar sesión en los demás dispositivos</button></div>`}`;
 
   const pintarOrigenes = (lista) => {
     $('#ol').innerHTML = lista.length ? lista.map((o, i) => `<div class="origen-fila" data-id="${o.id}"><button type="button" class="asa" title="Arrastra para cambiar el orden" aria-label="Mover «${esc(o.nombre)}», posición ${i + 1} de ${lista.length}. Usa las flechas del teclado.">${icon('asa')}</button><span class="nom ${o.activo ? '' : 'muted'}">${esc(o.nombre)}${o.activo ? '' : ' (oculta)'}</span>
@@ -525,6 +527,10 @@ async function pConfig(page) {
       ruta();
     });
   });
+  $('#cerrar-otras')?.addEventListener('click', (ev) => conBoton(ev.currentTarget, async () => {
+    await api('/api/admin/sesiones/cerrar', { method: 'POST' });
+    toast('Listo: las demás sesiones quedaron cerradas', 'ok');
+  }));
   $('#fpw')?.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     await conBoton($('button', ev.target), async () => { await api('/api/admin/password', { method: 'POST', body: { actual: $('#pa').value, nueva: $('#pn').value } }); ev.target.reset(); toast('Contraseña actualizada', 'ok'); });

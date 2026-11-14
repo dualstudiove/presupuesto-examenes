@@ -17,6 +17,9 @@ export const COLUMNAS = [
   ['presupuesto_items', 'cantidad', 'INTEGER NOT NULL DEFAULT 1'],
   // Lo que escribió el paciente al elegir «Otro» en «¿Cómo se enteró de nosotros?»
   ['presupuestos', 'origen_detalle', 'TEXT'],
+  // Versión de sesión: al subirla («Cerrar sesión en los demás dispositivos») las cookies anteriores dejan de valer
+  ['superadmins', 'sesion_version', 'INTEGER NOT NULL DEFAULT 0'],
+  ['usuarios_admin', 'sesion_version', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 export const asegurarEsquema = crearEsquema({ base: ESQUEMA_BASE, testigo: 'negocios', columnas: COLUMNAS });

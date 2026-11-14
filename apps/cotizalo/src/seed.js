@@ -180,6 +180,11 @@ async function main() {
   await d1.exec(fs.readFileSync(new URL('../migrations/0001_schema.sql', import.meta.url), 'utf8'));
   bindD1(d1);
   const demo = process.argv.includes('--demo');
+  // Sin contraseña propia, el seed crearía el superadministrador de ejemplo (Super12345, publicada en el README):
+  // nunca para una base real. Solo se permite con --demo, que es para probar en local.
+  if (!demo && !process.env.SUPER_PASSWORD) {
+    throw new Error('Define SUPER_EMAIL y SUPER_PASSWORD (una contraseña propia de 8 caracteres o más) para crear el superadministrador. Los datos de ejemplo, solo con --demo y en local.');
+  }
   const r = await sembrar({ demo });
   const i = process.argv.indexOf('--out');
   const destino = path.resolve(i > 0 ? process.argv[i + 1] : 'seed.sql');

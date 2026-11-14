@@ -1,9 +1,13 @@
 // Rutas públicas (pacientes). Solo lectura del catálogo + generación de presupuestos.
-import { db, limite } from '@dualstudio/comun/servidor';
-import { env } from '../env.js';
-import { refrescarSiHaceFalta, refrescarTasa, tasaGlobal } from '../bcv.js';
+import { db, limite, cuotaDiaria } from '@dualstudio/comun/servidor';
+import { refrescarSiHaceFalta, tasaGlobal } from '../bcv.js';
 import { getConfig, resolverTasa, crearPresupuesto, esOrigenOtro } from '../negocio.js';
 import { HttpError, uuid, nowIso, parteFecha } from '../util.js';
+
+// Topes diarios por negocio, guardados en la base (valen para todas las instancias del Worker). Frenan un abuso
+// de estas rutas sin sesión antes de que agote la cuota gratuita de la cuenta de Cloudflare, que es de todas las apps.
+export const TOPE_VISITAS_DIA = 5000;
+export const TOPE_PRESUPUESTOS_DIA = 1000;
 
 export function registrarPublicas(r) {
   r.add('GET', '/api/publico/config', { tenant: true }, async ({ negocio }) => {
@@ -64,6 +68,13 @@ export function registrarPublicas(r) {
 
   r.add('POST', '/api/publico/visita', { tenant: true }, async ({ negocio, body, ip }) => {
     if (!limite(`visita|${ip}`, 60, 60_000)) throw new HttpError(429, 'Demasiadas solicitudes.');
+    // Pasado el tope del día, la visita no se cuenta, sin molestar al paciente.
+    try {
+      await cuotaDiaria(`visitas|${negocio.id}`, TOPE_VISITAS_DIA);
+    } catch (e) {
+      if (e.status === 429) return { ok: true, contada: false };
+      throw e;
+    }
     const { dia, hora, dow } = parteFecha();
     await db.run(
       'INSERT INTO visitas (id, negocio_id, creado_en, dia, hora, dow, dispositivo) VALUES (?,?,?,?,?,?,?)',
@@ -74,12 +85,7 @@ export function registrarPublicas(r) {
 
   r.add('POST', '/api/publico/presupuesto', { tenant: true }, async ({ negocio, body, ip }) => {
     if (!limite(`presupuesto|${ip}`, 30, 60_000)) throw new HttpError(429, 'Demasiados presupuestos en poco tiempo. Espera un momento.');
+    await cuotaDiaria(`presupuestos|${negocio.id}`, TOPE_PRESUPUESTOS_DIA, 'Hoy ya se generaron demasiados presupuestos en este negocio. Intenta de nuevo mañana o comunícate con el laboratorio.');
     return crearPresupuesto(negocio, body);
-  });
-
-  // Para hostings sin proceso permanente: un cron externo llama aquí una vez al día.
-  r.add('POST', '/api/cron/tasa', { noCsrf: true }, async ({ req }) => {
-    if (!env.cronSecret || req.headers['x-cron-secret'] !== env.cronSecret) throw new HttpError(403, 'No autorizado.');
-    return refrescarTasa({ forzar: true });
   });
 }

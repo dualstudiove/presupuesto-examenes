@@ -16,9 +16,9 @@ import {
 // La sesión del administrador vive solo bajo <base>/<negocio> (p. ej. /cotizalo/demo).
 const rutaNegocio = (negocio) => `${env.basePath}/${negocio.slug}`;
 
-/** Cookie de sesión del administrador de un negocio. */
+/** Cookie de sesión del administrador de un negocio (sv = versión de sesión, ver «Cerrar sesión en los demás dispositivos»). */
 export const cookieSesionAdmin = (u, negocio) =>
-  cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: negocio.id, ph: marcaPassword(u.password_hash) }), { maxAge: 12 * 3600, path: rutaNegocio(negocio) });
+  cookie('sid_admin', firmarToken({ k: 'a', uid: u.id, nid: negocio.id, ph: marcaPassword(u.password_hash), sv: u.sesion_version ?? 0 }), { maxAge: 12 * 3600, path: rutaNegocio(negocio) });
 
 /**
  * Quién administra: el administrador del negocio o, si no hay sesión de ese negocio, el superadministrador,
@@ -27,8 +27,8 @@ export const cookieSesionAdmin = (u, negocio) =>
 export async function sesionAdmin(ctx) {
   const tok = leerToken(ctx.cookies.sid_admin);
   if (tok && tok.k === 'a' && tok.nid === ctx.negocio.id) {
-    const u = await db.get('SELECT id, email, nombre, password_hash, activo FROM usuarios_admin WHERE id = ? AND negocio_id = ?', [tok.uid, ctx.negocio.id]);
-    if (u && u.activo && marcaPassword(u.password_hash) === tok.ph) return u;
+    const u = await db.get('SELECT id, email, nombre, password_hash, activo, sesion_version FROM usuarios_admin WHERE id = ? AND negocio_id = ?', [tok.uid, ctx.negocio.id]);
+    if (u && u.activo && marcaPassword(u.password_hash) === tok.ph && (tok.sv ?? 0) === (u.sesion_version ?? 0)) return u;
   }
   const s = await superDe(ctx.cookies);
   if (s) return { id: null, email: s.email, nombre: 'Superadministrador', super: true };
@@ -67,7 +67,7 @@ export function registrarAdmin(r) {
     const key = `a|${ctx.negocio.id}|${email}|${ctx.ip}`;
     const espera = bloqueoRestante(key);
     if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
-    const u = await db.get('SELECT id, email, nombre, password_hash, activo FROM usuarios_admin WHERE negocio_id = ? AND email = ?', [ctx.negocio.id, email]);
+    const u = await db.get('SELECT id, email, nombre, password_hash, activo, sesion_version FROM usuarios_admin WHERE negocio_id = ? AND email = ?', [ctx.negocio.id, email]);
     const ok = await verifyPassword(pw, u ? u.password_hash : HASH_RELLENO);
     if (!u || !ok || !u.activo) {
       registrarFallo(key);
@@ -93,7 +93,15 @@ export function registrarAdmin(r) {
     if (!(await verifyPassword(String(body.actual || ''), usuario.password_hash))) throw new HttpError(400, 'La contraseña actual no es correcta.');
     const hash = await hashPassword(validarPassword(body.nueva));
     await db.run('UPDATE usuarios_admin SET password_hash = ? WHERE id = ?', [hash, usuario.id]);
-    setCookies.push(cookieSesionAdmin({ id: usuario.id, password_hash: hash }, negocio));
+    setCookies.push(cookieSesionAdmin({ ...usuario, password_hash: hash }, negocio));
+    return { ok: true };
+  });
+
+  // Cierra la sesión en todos los demás navegadores (p. ej. si alguien pudo copiar la cookie). Esta sigue abierta.
+  r.add('POST', '/api/admin/sesiones/cerrar', A, async ({ usuario, setCookies, negocio }) => {
+    if (usuario.super) throw new HttpError(403, 'Como superadministrador, cierra tus sesiones desde «Tu cuenta» en el panel general.');
+    await db.run('UPDATE usuarios_admin SET sesion_version = COALESCE(sesion_version, 0) + 1 WHERE id = ?', [usuario.id]);
+    setCookies.push(cookieSesionAdmin({ ...usuario, sesion_version: (usuario.sesion_version ?? 0) + 1 }, negocio));
     return { ok: true };
   });
 

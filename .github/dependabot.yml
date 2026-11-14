@@ -1,0 +1,11 @@
+# Avisos automáticos de GitHub cuando una dependencia tiene una versión nueva o un fallo de seguridad conocido.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dependencias:
+        patterns: ["*"]
+    open-pull-requests-limit: 3

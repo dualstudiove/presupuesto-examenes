@@ -42,7 +42,7 @@
     }
   ],
 
-  // Variables públicas. Los secretos (SESSION_SECRET, CRON_SECRET, SUPER_*) NO van aquí: `wrangler secret put NOMBRE`.
+  // Variables públicas. Los secretos (SESSION_SECRET y, para recuperar el acceso, SUPER_*) NO van aquí: `wrangler secret put NOMBRE`.
   "vars": {
     // BASE_PATH: ruta donde vive la app dentro del dominio. Hoy: dualstudio.app/cotizalo.
     // Si la app se muda a su propio dominio (p. ej. cotizalo.com), pon "" y cambia "routes" abajo:
