@@ -1,6 +1,6 @@
 // Configuración de __TITULO__: la común (BASE_PATH, SESSION_SECRET, ENVIRONMENT, TZ_OFFSET_MIN, PBKDF2_ITER)
 // más las variables propias de esta app, que se añaden aquí.
-import { env, configurarEnv as configurarComun } from '@dualstudio/comun/servidor';
+import { configurarEnv as configurarComun, env } from "@dualstudio/comun/servidor";
 
 export { env };
 

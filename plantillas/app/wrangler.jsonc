@@ -17,7 +17,14 @@
   "assets": {
     "directory": "./.publicar",
     "binding": "ASSETS",
-    "run_worker_first": ["/__APP__", "/__APP__/*", "!/__APP__/css/*", "!/__APP__/js/*", "!/__APP__/img/*", "!/__APP__/_ds/*"],
+    "run_worker_first": [
+      "/__APP__",
+      "/__APP__/*",
+      "!/__APP__/css/*",
+      "!/__APP__/js/*",
+      "!/__APP__/img/*",
+      "!/__APP__/_ds/*"
+    ],
     "html_handling": "none",
     "not_found_handling": "none"
   },
@@ -47,6 +54,6 @@
 
   // Sitio de pruebas (Cloudflare «Previews»): cada cambio en una rama que no es master se publica aparte.
   "previews": {
-    "vars": { "BASE_PATH": "/__APP__", "ENVIRONMENT": "production", "TZ_OFFSET_MIN": "-240" }//__D1_PREVIEWS__
+    "vars": { "BASE_PATH": "/__APP__", "ENVIRONMENT": "production", "TZ_OFFSET_MIN": "-240" } //__D1_PREVIEWS__
   }
 }

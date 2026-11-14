@@ -17,14 +17,26 @@
   "assets": {
     "directory": "./.publicar",
     "binding": "ASSETS",
-    "run_worker_first": ["/planifica", "/planifica/*", "!/planifica/css/*", "!/planifica/js/*", "!/planifica/img/*", "!/planifica/vendor/*", "!/planifica/_ds/*"],
+    "run_worker_first": [
+      "/planifica",
+      "/planifica/*",
+      "!/planifica/css/*",
+      "!/planifica/js/*",
+      "!/planifica/img/*",
+      "!/planifica/vendor/*",
+      "!/planifica/_ds/*"
+    ],
     "html_handling": "none",
     "not_found_handling": "none"
   },
   // Base de datos. Créala con:  npx wrangler d1 create planifica   y pega aquí el database_id.
   // (En local, con `wrangler dev`, sirve cualquier valor.)
   "d1_databases": [
-    { "binding": "DB", "database_name": "planifica", "database_id": "4e167364-7880-49ae-af49-0e42de886686" }
+    {
+      "binding": "DB",
+      "database_name": "planifica",
+      "database_id": "4e167364-7880-49ae-af49-0e42de886686"
+    }
   ],
 
   // Variables públicas. El secreto SESSION_SECRET NO va aquí: `wrangler secret put SESSION_SECRET`.
@@ -48,7 +60,11 @@
     "vars": { "BASE_PATH": "/planifica", "ENVIRONMENT": "production", "TZ_OFFSET_MIN": "-240" },
     // Base de datos APARTE para las pruebas:  npx wrangler d1 create planifica-pruebas
     "d1_databases": [
-      { "binding": "DB", "database_name": "planifica-pruebas", "database_id": "d5c82b6d-3b4e-45ab-bfa0-710d467abff1" }
+      {
+        "binding": "DB",
+        "database_name": "planifica-pruebas",
+        "database_id": "d5c82b6d-3b4e-45ab-bfa0-710d467abff1"
+      }
     ]
   }
 }

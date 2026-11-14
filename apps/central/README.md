@@ -16,10 +16,10 @@ npm run dev -w central      # http://localhost:8788  ·  /diseno
 
 ## Archivos
 
-| Archivo | Qué es |
-|---|---|
-| `apps.json` | El catálogo de apps. |
-| `construir.js` | Genera las tarjetas y publica el catálogo del sistema de diseño. |
-| `public/index.html`, `404.html` | Las páginas (las tarjetas van en la marca `<!-- APPS -->`). |
-| `public/css/tema.css`, `app.css` | El tema y los componentes propios de la central, sobre el sistema de diseño padre. |
-| `wrangler.jsonc` | Worker `dualstudio`, ruta `dualstudio.app/*`. Las apps tienen rutas más específicas en sus Workers y Cloudflare siempre usa la más específica. |
+| Archivo                          | Qué es                                                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps.json`                      | El catálogo de apps.                                                                                                                           |
+| `construir.js`                   | Genera las tarjetas y publica el catálogo del sistema de diseño.                                                                               |
+| `public/index.html`, `404.html`  | Las páginas (las tarjetas van en la marca `<!-- APPS -->`).                                                                                    |
+| `public/css/tema.css`, `app.css` | El tema y los componentes propios de la central, sobre el sistema de diseño padre.                                                             |
+| `wrangler.jsonc`                 | Worker `dualstudio`, ruta `dualstudio.app/*`. Las apps tienen rutas más específicas en sus Workers y Cloudflare siempre usa la más específica. |

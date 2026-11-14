@@ -16,13 +16,13 @@ Monorepo de las apps de **dualstudio.app**. Cada app vive en su carpeta, se leva
 └─ package.json       workspaces de npm y atajos
 ```
 
-| Carpeta | Qué es | Documentación |
-|---|---|---|
-| `apps/central` | Página central con el catálogo de apps (sale de `apps.json`) y el catálogo del sistema de diseño en `/diseno`. | [README](apps/central/README.md) |
-| `apps/cotizalo` | Cotízalo: presupuestos de exámenes para laboratorios (multinegocio). | [README](apps/cotizalo/README.md) |
-| `apps/planifica` | Planifica: parrilla de contenido para redes sociales (multicliente, con inicio de sesión). | [README](apps/planifica/README.md) |
-| `packages/diseno` | El padre visual. Cada app solo ajusta tokens en su `tema.css` y agrega lo suyo en `app.css`. | [DESIGN.md](packages/diseno/docs/DESIGN.md) |
-| `packages/comun` | `crearServidor()`, base de datos, cuentas (sesiones, contraseñas, recuperar el acceso), esquema, topes diarios y utilidades del navegador. | [README](packages/comun/README.md) |
+| Carpeta           | Qué es                                                                                                                                     | Documentación                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `apps/central`    | Página central con el catálogo de apps (sale de `apps.json`) y el catálogo del sistema de diseño en `/diseno`.                             | [README](apps/central/README.md)            |
+| `apps/cotizalo`   | Cotízalo: presupuestos de exámenes para laboratorios (multinegocio).                                                                       | [README](apps/cotizalo/README.md)           |
+| `apps/planifica`  | Planifica: parrilla de contenido para redes sociales (multicliente, con inicio de sesión).                                                 | [README](apps/planifica/README.md)          |
+| `packages/diseno` | El padre visual. Cada app solo ajusta tokens en su `tema.css` y agrega lo suyo en `app.css`.                                               | [DESIGN.md](packages/diseno/docs/DESIGN.md) |
+| `packages/comun`  | `crearServidor()`, base de datos, cuentas (sesiones, contraseñas, recuperar el acceso), esquema, topes diarios y utilidades del navegador. | [README](packages/comun/README.md)          |
 
 ## Comandos (desde la raíz)
 
@@ -62,12 +62,12 @@ Cloudflare está conectado a este repositorio. Cada Worker compila **su** carpet
 
 ### Configuración de cada Worker (Configuración → Compilación)
 
-| Worker | Directorio raíz | Comando de compilación | Rutas a vigilar (incluir) |
-|---|---|---|---|
-| `cotizalo` | `apps/cotizalo` | `cd ../.. && npm ci` | `apps/cotizalo/*`, `packages/*`, `herramientas/*`, `package-lock.json` |
-| `planifica` | `apps/planifica` | `cd ../.. && npm ci` | `apps/planifica/*`, `packages/*`, `herramientas/*`, `package-lock.json` |
-| `dualstudio` (central) | `apps/central` | `cd ../.. && npm ci` | `apps/central/*`, `packages/diseno/*`, `herramientas/*`, `package-lock.json` |
-| cada app nueva | `apps/<app>` | `cd ../.. && npm ci` | `apps/<app>/*`, `packages/*`, `herramientas/*`, `package-lock.json` |
+| Worker                 | Directorio raíz  | Comando de compilación | Rutas a vigilar (incluir)                                                    |
+| ---------------------- | ---------------- | ---------------------- | ---------------------------------------------------------------------------- |
+| `cotizalo`             | `apps/cotizalo`  | `cd ../.. && npm ci`   | `apps/cotizalo/*`, `packages/*`, `herramientas/*`, `package-lock.json`       |
+| `planifica`            | `apps/planifica` | `cd ../.. && npm ci`   | `apps/planifica/*`, `packages/*`, `herramientas/*`, `package-lock.json`      |
+| `dualstudio` (central) | `apps/central`   | `cd ../.. && npm ci`   | `apps/central/*`, `packages/diseno/*`, `herramientas/*`, `package-lock.json` |
+| cada app nueva         | `apps/<app>`     | `cd ../.. && npm ci`   | `apps/<app>/*`, `packages/*`, `herramientas/*`, `package-lock.json`          |
 
 - El **comando de despliegue** sigue igual (`npx wrangler deploy`), y también el de **vistas previas**. Wrangler ejecuta solo `npm run construir` antes de publicar (bloque `build` del `wrangler.jsonc`).
 - El comando de compilación instala las librerías del monorepo desde la raíz. Sin él, la compilación falla con «Cannot find module '@dualstudio/comun'».
@@ -95,21 +95,21 @@ Cloudflare está conectado a este repositorio. Cada Worker compila **su** carpet
 
 Los límites son de toda la cuenta, no de cada app.
 
-| Límite | Qué se hace |
-|---|---|
-| 100 000 peticiones a Workers al día | Los archivos fijos no pasan por el Worker, la central no tiene Worker, y la regla de límite y los topes diarios frenan el abuso. |
-| Bases D1 por cuenta | Cada app con datos usa 2 (real y de pruebas): Cotízalo y Planifica ocupan 4. Si una app no necesita base de datos, se crea con `--sin-base`. |
-| Tareas programadas (cron) | Cotízalo usa 1 (tasa BCV). |
-| 10 ms de CPU por petición | El cifrado de contraseñas se puede bajar con la variable `PBKDF2_ITER` si el inicio de sesión se pasa del límite (ver `packages/comun/README.md`). |
-| 3 000 minutos de compilación al mes | Rutas a vigilar por app. |
+| Límite                              | Qué se hace                                                                                                                                        |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 100 000 peticiones a Workers al día | Los archivos fijos no pasan por el Worker, la central no tiene Worker, y la regla de límite y los topes diarios frenan el abuso.                   |
+| Bases D1 por cuenta                 | Cada app con datos usa 2 (real y de pruebas): Cotízalo y Planifica ocupan 4. Si una app no necesita base de datos, se crea con `--sin-base`.       |
+| Tareas programadas (cron)           | Cotízalo usa 1 (tasa BCV).                                                                                                                         |
+| 10 ms de CPU por petición           | El cifrado de contraseñas se puede bajar con la variable `PBKDF2_ITER` si el inicio de sesión se pasa del límite (ver `packages/comun/README.md`). |
+| 3 000 minutos de compilación al mes | Rutas a vigilar por app.                                                                                                                           |
 
 ## Pruebas
 
 `npm test` desde la raíz ejecuta las pruebas de cada parte:
 
-| Parte | Qué cubre |
-|---|---|
-| `packages/comun` | Configuración, contraseñas, sesiones, esquema, topes diarios y `crearServidor()`. |
-| `packages/diseno` | Las reglas del sistema de diseño, comprobadas en todas las apps. |
-| `apps/cotizalo` | La app completa contra un D1 simulado. |
-| `herramientas` | La compilación, el catálogo de la central y `nueva-app`. |
+| Parte             | Qué cubre                                                                         |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `packages/comun`  | Configuración, contraseñas, sesiones, esquema, topes diarios y `crearServidor()`. |
+| `packages/diseno` | Las reglas del sistema de diseño, comprobadas en todas las apps.                  |
+| `apps/cotizalo`   | La app completa contra un D1 simulado.                                            |
+| `herramientas`    | La compilación, el catálogo de la central y `nueva-app`.                          |

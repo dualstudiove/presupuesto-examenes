@@ -4,7 +4,7 @@
 // Multicliente: todo lo que se planifica cuelga de un cliente (cliente_id) y ninguna consulta cruza clientes.
 // Las publicaciones y los objetivos guardan su contenido como JSON (datos) con campos permitidos y tamaño máximo
 // (ver validar.js): así la interfaz puede evolucionar sin migraciones para cada campo nuevo.
-import { crearEsquema } from '@dualstudio/comun/servidor';
+import { crearEsquema } from "@dualstudio/comun/servidor";
 
 export const ESQUEMA_BASE = `
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -76,4 +76,8 @@ CREATE INDEX IF NOT EXISTS idx_imagenes_cliente ON imagenes (cliente_id);
 
 export const COLUMNAS = [];
 
-export const asegurarEsquema = crearEsquema({ base: ESQUEMA_BASE, testigo: 'usuarios', columnas: COLUMNAS });
+export const asegurarEsquema = crearEsquema({
+  base: ESQUEMA_BASE,
+  testigo: "usuarios",
+  columnas: COLUMNAS,
+});
