@@ -29,5 +29,5 @@ Sistema de diseño: `packages/diseno/docs/DESIGN.md` y el catálogo en dualstudi
 
 1. Base de datos: `npx wrangler d1 create __APP__` y pega el `database_id` en `wrangler.jsonc`. Para el sitio de pruebas, otra: `npx wrangler d1 create __APP__-pruebas` (bloque `previews`).
 2. Secreto: `npx wrangler secret put SESSION_SECRET` (texto aleatorio de 32 caracteres o más). En el sitio de pruebas, como secreto de las vistas previas.
-3. En Cloudflare → Workers → Crear → Importar un repositorio: este repositorio, **directorio raíz `apps/__APP__`**, comando de despliegue `npx wrangler deploy`, comando de vistas previas `npx wrangler versions upload`, rutas a vigilar `apps/__APP__/**` y `packages/**`.
+3. En Cloudflare → Workers → Crear → Importar un repositorio: este repositorio, con la configuración de compilación del README del monorepo («Publicar en Cloudflare»): directorio raíz `apps/__APP__`, comando de compilación `cd ../.. && npm ci`, el mismo comando de despliegue y de vistas previas que Cotízalo, y sus rutas a vigilar.
 4. En `apps/central/apps.json`, cambia el estado de la app a `"pruebas"` para que aparezca con enlace en dualstudio.app.
