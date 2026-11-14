@@ -1,0 +1,13 @@
+{
+  "name": "@dualstudio/diseno",
+  "version": "1.0.0",
+  "description": "Sistema de diseño padre de las apps de Dual Studio: tokens, base, componentes (CSS + JS) e íconos.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}

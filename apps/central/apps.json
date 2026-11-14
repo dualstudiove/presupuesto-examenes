@@ -1,0 +1,21 @@
+{
+  "_ayuda": "Catálogo de dualstudio.app. Para agregar una app, agrega un bloque. ruta: su ruta en este dominio (/nombre) o, cuando se mude, su dominio propio (https://…). estado: \"publicada\" · \"pruebas\" · \"proximamente\" (sin enlace). icono: un nombre de packages/diseno/js/iconos.js. color: cat-1…cat-5 (tokens del sistema de diseño).",
+  "apps": [
+    {
+      "nombre": "Cotízalo",
+      "ruta": "/cotizalo",
+      "descripcion": "Presupuestos de exámenes para laboratorios clínicos.",
+      "estado": "pruebas",
+      "icono": "flask",
+      "color": "cat-3"
+    },
+    {
+      "nombre": "Planifica",
+      "ruta": "/planifica",
+      "descripcion": "Muy pronto.",
+      "estado": "proximamente",
+      "icono": "calendar",
+      "color": "cat-5"
+    }
+  ]
+}

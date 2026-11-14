@@ -6,6 +6,7 @@
   "type": "module",
   "engines": { "node": ">=22.13" },
   "scripts": {
+    "construir": "node ../../herramientas/construir.js .",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:migrar:local": "wrangler d1 migrations apply presupuesto --local",

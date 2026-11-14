@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "construir": "node ../../herramientas/construir.js .",
     "dev": "wrangler dev --port 8788",
     "deploy": "wrangler deploy"
   },

@@ -86,14 +86,16 @@ function faltaConfiguracion(e) {
  *  rutaApi         (ruta) => patrón de Hono para esa ruta (por defecto, ruta.path).
  *  contexto        async (ctx, ruta) => {} completa ctx antes de la sesión (p. ej. el negocio de la ruta).
  *  paginas         (app, h) => {} registra las páginas; h trae asset, respHtml, paginaMensaje, noEncontrada…
- *  estaticos       carpetas de archivos fijos que el Worker sirve si una petición le llega (['/css/*', …]).
+ *  estaticos       carpetas de archivos fijos que el Worker sirve si una petición le llega (normalmente Cloudflare
+ *                  los sirve sin pasar por él; ver run_worker_first en wrangler.jsonc).
  *  icono           ruta del ícono (para /favicon.ico).
  *  estilos         hojas de estilo de las páginas de mensaje (rutas dentro de la app).
  *  programado      async (bindings, ctx) => {} para el Cron Trigger (opcional).
  */
 export function crearServidor({
   router, configurar, asegurarEsquema, alIniciar, rutaApi = (r) => r.path, contexto, paginas,
-  estaticos = ['/css/*', '/js/*', '/img/*'], icono = '/img/favicon.svg', estilos = ['/css/app.css'], programado,
+  estaticos = ['/css/*', '/js/*', '/img/*', '/_ds/*'], icono = '/img/favicon.svg',
+  estilos = ['/_ds/diseno/diseno.css', '/css/tema.css', '/css/app.css'], programado,
 }) {
   const app = new Hono();
 
@@ -147,10 +149,12 @@ export function crearServidor({
   for (const r of router.routes) app.on(r.method, rutaApi(r), (c) => atender(c, r));
 
   // ── Archivos fijos y páginas (binding ASSETS) ──
+  // herramientas/construir.js publica los archivos bajo BASE_PATH (/cotizalo/css/app.css), para que Cloudflare
+  // sirva los fijos directamente, sin pasar por el Worker. Aquí `ruta` es relativa a la app ('/index.html').
   async function asset(c, ruta, { status = 200 } = {}) {
     if (!c.env.ASSETS) throw new HttpError(500, 'Falta el binding ASSETS (revisa wrangler.jsonc → assets).');
     const u = new URL(c.req.url);
-    u.pathname = ruta;
+    u.pathname = env.basePath + ruta;
     u.search = '';
     const html = ruta.endsWith('.html');
     // Las páginas no se revalidan con ETag: se reescriben al servirlas (ver abajo).

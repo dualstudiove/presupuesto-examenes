@@ -1,12 +1,24 @@
 {
-  // Página central de dualstudio.app: solo archivos estáticos (sin código de servidor).
+  // Página central de dualstudio.app: solo archivos estáticos (sin código de servidor, así que no gasta
+  // peticiones de Workers del plan gratuito).
   // Desplegar desde la raíz del repo:  npm run deploy:central  (o desde apps/central: npm run deploy)
   "name": "dualstudio",
   "compatibility_date": "2025-09-01",
+
+  // Antes de publicar se arma .publicar/: public/, el sistema de diseño y el catálogo de apps generado
+  // desde apps.json (ver construir.js de esta carpeta y herramientas/construir.js).
+  "build": {
+    "command": "npm run construir",
+    "watch_dir": ["public", "../../packages/diseno"]
+  },
+
   "assets": {
-    "directory": "./public",
+    "directory": "./.publicar",
     "not_found_handling": "404-page"
   },
+
+  // Sin BASE_PATH: la central vive en la raíz del dominio.
+  "vars": { "BASE_PATH": "" },
 
   // Atiende todo dualstudio.app. Las apps tienen rutas más específicas en sus propios Workers
   // (p. ej. dualstudio.app/cotizalo/*), y Cloudflare siempre usa la ruta más específica.

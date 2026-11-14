@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sistema de diseño · Dual Studio</title>
+  <meta name="description" content="Catálogo vivo del sistema de diseño de Dual Studio: tokens, tipografía y componentes.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="/_ds/diseno/diseno.css">
+  <style>
+    /* Solo la maqueta del catálogo (capa app): los componentes que se muestran son los del padre, sin retoques. */
+    @layer app {
+      .cat-page { max-width: 1040px; margin: 0 auto; padding: 32px 16px 80px; display: flex; flex-direction: column; gap: 28px; }
+      .cat-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+      .cat-head > div:first-child { flex: 1 1 320px; min-width: 0; }
+      .cat-head h1 { font-size: 30px; font-weight: 700; }
+      .cat-head p { color: var(--ink-2); margin: 6px 0 0; max-width: 62ch; }
+      section > h2 { margin-bottom: 4px; }
+      section > p.muted { margin-bottom: 12px; }
+      .demo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .grid-sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+      .sw { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+      .sw i { display: block; height: 44px; border-bottom: 1px solid var(--line-2); }
+      .sw code { display: block; padding: 6px 10px; font-size: 12px; }
+      .ico-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+      .ico-grid div { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 12px; color: var(--ink-2); }
+      .ico-grid svg.i { width: 22px; height: 22px; color: var(--ink); }
+      .tipo > * + * { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="cat-page">
+    <header class="cat-head">
+      <div>
+        <p class="k">packages/diseno</p>
+        <h1>Sistema de diseño Dual Studio</h1>
+        <p>El padre de todas las apps. Lo que ves aquí es exactamente lo que reciben las apps; cada una solo ajusta tokens en su <code>tema.css</code> y agrega sus propios componentes. Reglas en <code>docs/DESIGN.md</code>.</p>
+      </div>
+      <div class="seg" role="group" aria-label="Tema">
+        <button type="button" data-tema="" aria-pressed="true">Automático</button>
+        <button type="button" data-tema="light" aria-pressed="false">Claro</button>
+        <button type="button" data-tema="dark" aria-pressed="false">Oscuro</button>
+      </div>
+    </header>
+
+    <section>
+      <h2>Color</h2>
+      <p class="muted">Siempre por variable. Cambia el tema arriba para ver los valores oscuros.</p>
+      <div class="grid-sw" id="sw"></div>
+    </section>
+
+    <section class="card tipo">
+      <h3>Tipografía</h3>
+      <h1>Título 1 · Space Grotesk 26</h1>
+      <h2>Título 2 · Space Grotesk 20</h2>
+      <h3 style="text-transform:none;letter-spacing:-.02em;color:var(--ink);font-size:16px">Título 3 · Space Grotesk 16</h3>
+      <p>Texto de párrafo · Inter 14 con interlineado 1,5. <span class="muted">Texto apagado (.muted).</span> <a href="#">Enlace</a>.</p>
+      <p class="k">Etiqueta de sección (.k)</p>
+    </section>
+
+    <section>
+      <h2>Botones</h2>
+      <p class="muted"><code>.btn</code> + variante + tamaño.</p>
+      <div class="demo">
+        <button class="btn btn-primary" type="button">Principal</button>
+        <button class="btn btn-soft" type="button">Suave</button>
+        <button class="btn" type="button">Normal</button>
+        <button class="btn btn-ghost" type="button">Fantasma</button>
+        <button class="btn btn-danger" type="button">Peligro</button>
+        <button class="btn btn-danger solid" type="button">Peligro sólido</button>
+        <button class="btn btn-sm" type="button">Pequeño</button>
+        <button class="btn btn-icon" type="button" aria-label="Editar" data-icon="edit"></button>
+        <button class="btn btn-primary" type="button" disabled>Deshabilitado</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Formularios</h3>
+      <div class="row">
+        <div class="field"><label for="f1">Nombre</label><input id="f1" type="text" placeholder="Escribe aquí"><span class="hint">Texto de ayuda (.hint)</span></div>
+        <div class="field"><label for="f2">Categoría</label><select id="f2"><option>Hematología</option><option>Química</option></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="f3">Precio</label><div class="input-unit"><input id="f3" type="text" value="12,50"><span>REF</span></div></div>
+        <div class="field"><label for="f4">Buscar</label><div class="search" data-icon-search><input id="f4" type="search" placeholder="Buscar…"></div></div>
+      </div>
+      <label class="check"><input type="checkbox" checked> Casilla con texto (.check)</label>
+    </section>
+
+    <section>
+      <h2>Avisos, chips y estados</h2>
+      <div class="tipo">
+        <div class="notice" data-icon="info"><div>Aviso informativo (.notice)</div></div>
+        <div class="notice ok" data-icon="check"><div>Aviso de éxito (.notice.ok)</div></div>
+        <div class="notice warn" data-icon="warn"><div>Aviso de cuidado (.notice.warn)</div></div>
+        <div class="notice bad" data-icon="warn"><div>Aviso de error (.notice.bad)</div></div>
+      </div>
+      <p class="k" style="margin-top:16px">Categorías (.tag.cat-N)</p>
+      <div class="demo"><span class="tag cat-1">Categoría 1</span><span class="tag cat-2">Categoría 2</span><span class="tag cat-3">Categoría 3</span><span class="tag cat-4">Categoría 4</span><span class="tag cat-5">Categoría 5</span></div>
+      <p class="k" style="margin-top:16px">Estados (.badge)</p>
+      <div class="demo"><span class="badge ok">Activo</span><span class="badge off">Inactivo</span><span class="badge warn">Pendiente</span><span class="badge bad">Suspendido</span><button class="badge ok" type="button">Clicable</button></div>
+      <p class="k" style="margin-top:16px">Filtros (.chips &gt; .chip)</p>
+      <div class="chips"><button class="chip on" type="button">Todas</button><button class="chip" type="button">Hematología</button><button class="chip" type="button">Orina</button></div>
+    </section>
+
+    <section>
+      <h2>Navegación</h2>
+      <div class="tabs"><button class="on" type="button">Exámenes <span class="n">(34)</span></button><button type="button">Perfiles <span class="n">(4)</span></button><button type="button">Categorías</button></div>
+      <div class="demo" style="margin-top:12px"><div class="seg"><button class="on" type="button">Hoy</button><button type="button">7 días</button><button type="button">30 días</button></div></div>
+      <div style="margin-top:12px; max-width: 320px" class="bar"><i style="width:62%"></i></div>
+    </section>
+
+    <section>
+      <h2>Tabla</h2>
+      <p class="muted">En móvil, cada fila pasa a ser una tarjeta (las celdas con <code>data-l</code> muestran su etiqueta).</p>
+      <div class="tw"><table class="t">
+        <thead><tr><th>Nombre</th><th>Estado</th><th class="right">Precio</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Hematología completa</td><td data-l="Estado:"><span class="badge ok">Activo</span></td><td class="right" data-l="Precio:">4,00 REF</td><td class="acts"><button class="btn btn-sm" type="button">Editar</button></td></tr>
+          <tr class="off"><td>Glicemia</td><td data-l="Estado:"><span class="badge off">Inactivo</span></td><td class="right" data-l="Precio:">2,50 REF</td><td class="acts"><button class="btn btn-sm" type="button">Editar</button></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>Vacío, carga y ventanas</h2>
+      <div class="grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px">
+        <div class="empty" data-icon="empty"><p>Aún no hay nada aquí</p><span>Estado vacío (.empty)</span></div>
+        <div><div class="skeleton"></div><div class="skeleton"></div></div>
+      </div>
+      <div class="demo" style="margin-top:12px">
+        <button class="btn" type="button" id="ver-toast">Aviso emergente</button>
+        <button class="btn" type="button" id="ver-modal">Ventana</button>
+        <button class="btn btn-danger" type="button" id="ver-confirmar">Confirmar (peligro)</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Íconos</h2>
+      <p class="muted"><code>icon('nombre')</code> de <code>js/iconos.js</code>.</p>
+      <div class="ico-grid" id="iconos"></div>
+    </section>
+  </main>
+  <div id="toasts" aria-live="polite"></div>
+
+  <script type="module">
+    import { ICONOS, icon } from '/_ds/diseno/js/iconos.js';
+    import { toast, modal, confirmar } from '/_ds/diseno/js/componentes.js';
+
+    const TOKENS = ['bg', 'surface', 'surface-2', 'ink', 'ink-2', 'ink-3', 'line', 'line-2', 'accent', 'accent-bg', 'ok', 'ok-bg', 'warn', 'warn-bg', 'danger', 'danger-bg', 'cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5'];
+    document.getElementById('sw').innerHTML = TOKENS.map((t) => `<div class="sw"><i style="background:var(--${t})"></i><code>--${t}</code></div>`).join('');
+    document.getElementById('iconos').innerHTML = Object.keys(ICONOS).map((n) => `<div>${icon(n)}<span>${n}</span></div>`).join('');
+    for (const el of document.querySelectorAll('[data-icon]')) el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon));
+    document.querySelector('[data-icon-search]').insertAdjacentHTML('afterbegin', icon('search'));
+
+    for (const b of document.querySelectorAll('[data-tema]')) {
+      b.addEventListener('click', () => {
+        if (b.dataset.tema) document.documentElement.dataset.theme = b.dataset.tema;
+        else delete document.documentElement.dataset.theme;
+        for (const o of document.querySelectorAll('[data-tema]')) o.setAttribute('aria-pressed', String(o === b));
+      });
+    }
+    document.getElementById('ver-toast').addEventListener('click', () => toast('Cambios guardados', 'ok'));
+    document.getElementById('ver-modal').addEventListener('click', () => modal({
+      titulo: 'Ventana de ejemplo',
+      html: '<p>Contenido de la ventana. En el móvil se abre desde abajo.</p>',
+      acciones: [{ texto: 'Cancelar', onClick: (c) => c() }, { texto: 'Aceptar', clase: 'btn-primary', onClick: (c) => c() }],
+    }));
+    document.getElementById('ver-confirmar').addEventListener('click', async () => {
+      if (await confirmar('¿Eliminar este elemento? No se puede deshacer.', { ok: 'Eliminar', peligro: true, titulo: 'Eliminar' })) toast('Eliminado', 'ok');
+    });
+  </script>
+</body>
+</html>

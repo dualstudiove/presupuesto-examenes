@@ -1,0 +1,14 @@
+/* ═══════════ Cotízalo: tema (capa app.tema) ═══════════
+   La personalidad de la app sobre el sistema de diseño padre. Aquí solo se redefinen tokens, nunca componentes.
+
+   Cotízalo usa los tokens del padre tal cual:
+   · El acento lo elige cada negocio (su color principal): la app lo escribe como --primary en <html> y el padre
+     lo convierte en --accent (ver tokens.css). Sin color de negocio, el índigo del sistema.
+   · --cat-1…5 colorean las categorías de exámenes, en ciclo según su orden (las crea cada negocio).
+
+   Para cambiar un token, defínelo aquí en claro y en oscuro, por ejemplo:
+     :root { --cat-1: #…; }
+     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cat-1: #…; } }
+     :root[data-theme="dark"] { --cat-1: #…; } */
+@layer app.tema {
+}

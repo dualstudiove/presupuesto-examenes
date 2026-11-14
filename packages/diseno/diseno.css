@@ -1,0 +1,14 @@
+/* ═══════════ Sistema de diseño Dual Studio (padre) ═══════════
+   Punto de entrada único. Cada app lo enlaza primero y después sus propias hojas:
+
+     <link rel="stylesheet" href="/_ds/diseno/diseno.css">   ← este archivo (padre)
+     <link rel="stylesheet" href="/css/tema.css">            ← @layer app.tema { tokens propios }
+     <link rel="stylesheet" href="/css/app.css">             ← @layer app { componentes propios }
+
+   Orden fijo de las capas, de menor a mayor prioridad. Gracias a él, una app siempre puede ajustar al padre
+   sin pelear con la especificidad de los selectores. */
+@layer diseno.tokens, diseno.base, diseno.componentes, app.tema, app;
+
+@import url("tokens.css") layer(diseno.tokens);
+@import url("base.css") layer(diseno.base);
+@import url("componentes.css") layer(diseno.componentes);

@@ -2,5 +2,5 @@ node_modules
 .wrangler
 .dev.vars
 seed.sql
-# Copias del sistema de diseño y de comun/web que se generan al compilar cada app
-apps/*/public/_ds/
+# Lo que publica cada app: lo genera herramientas/construir.js
+.publicar/
