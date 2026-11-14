@@ -67,7 +67,7 @@ test('los secretos de recuperación se aplican una sola vez y el panel avisa', a
   assert.equal(me.json.secretos_recuperacion, true);
   await pedir('/cotizalo/api/super/password', { method: 'POST', body: { actual: 'ClaveDeRescate1', nueva: 'MiClavePropia2026' }, jar });
   // Una instancia nueva del Worker (sin caché) no vuelve a poner la contraseña de los secretos.
-  const { olvidarCacheDeSecretos } = await import('../src/routes/super.js');
+  const { olvidarCacheDeSecretos } = await import('@dualstudio/comun/servidor');
   olvidarCacheDeSecretos();
   assert.equal((await login('rescate@dualstudio.app', 'MiClavePropia2026')).status, 200);
   assert.equal((await login('rescate@dualstudio.app', 'ClaveDeRescate1')).status, 401);

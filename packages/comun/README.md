@@ -22,8 +22,9 @@ export default { fetch, scheduled };
 | Módulo | Qué da |
 |---|---|
 | `servidor.js` | `crearServidor()`: montaje bajo `BASE_PATH`, API (JSON, CSRF con `x-app`, `opts.auth`, errores), páginas desde `ASSETS`, cabeceras de seguridad, «falta configuración», Cron (`programado`). |
-| `env.js` | `env` y `configurarEnv()`: `BASE_PATH`, `SESSION_SECRET` (**obligatorio** salvo `ENVIRONMENT=development`, mínimo 32 caracteres), `ENVIRONMENT`, `TZ_OFFSET_MIN`, `PBKDF2_ITER`. |
+| `env.js` | `env` y `configurarEnv()`: `BASE_PATH`, `SESSION_SECRET` (**obligatorio** salvo `ENVIRONMENT=development`, mínimo 32 caracteres), `ENVIRONMENT`, `TZ_OFFSET_MIN`, `PBKDF2_ITER`, `SUPER_EMAIL`/`SUPER_PASSWORD`. |
 | `db.js` | `db.all/get/run/tx` sobre D1. `tx` agrupa las escrituras en un lote atómico (D1 no tiene transacciones interactivas). |
+| `cuentas.js` | Lo común de las cuentas de usuario: `tipoDeSesion()` (cookie firmada con versión de sesión), `cerrarOtrasSesiones()`, `frenoDeIntentos()`, `comprobarPassword()` (sin delatar correos) y `aplicarSecretosDeRecuperacion()` (`SUPER_EMAIL`/`SUPER_PASSWORD`, una sola vez). Lo usan Cotízalo y Planifica. |
 | `auth.js` | Contraseñas PBKDF2 (`s2$…`/`s3$…`), sesiones firmadas con HMAC (`firmarToken`/`leerToken`, campo `sv` para cerrarlas a distancia), cookies limitadas a la ruta de la app, bloqueo por intentos y límites en memoria. |
 | `esquema.js` | `crearEsquema()`: la app crea sus tablas sola en una base vacía y añade columnas nuevas. También crea las tablas comunes `_cuotas` y `_ajustes`. |
 | `cuotas.js` | `cuotaDiaria(clave, max)`: topes diarios guardados en la base, válidos para todas las instancias. `leerAjuste`/`guardarAjuste`. |

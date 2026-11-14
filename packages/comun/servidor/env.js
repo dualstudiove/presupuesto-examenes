@@ -15,6 +15,8 @@ export const env = {
   cookieSecure: false,
   tzOffsetMin: -240,
   pbkdf2Iter: 100_000,
+  superEmail: '', // secretos de recuperación del acceso (ver cuentas.js)
+  superPassword: '',
 };
 
 /** '/cotizalo/' | 'cotizalo' | '/' | '' → '/cotizalo' o '' (sin barra final). */
@@ -44,6 +46,8 @@ export function configurarEnv(b = {}, extra) {
   env.tzOffsetMin = Number(b.TZ_OFFSET_MIN ?? -240);
   const iter = Number(b.PBKDF2_ITER || 100_000);
   env.pbkdf2Iter = Number.isInteger(iter) && iter >= 10_000 && iter <= 100_000 ? iter : 100_000;
+  env.superEmail = b.SUPER_EMAIL || '';
+  env.superPassword = b.SUPER_PASSWORD || '';
   if (!env.sessionSecret) {
     if (!env.development) {
       throw new Error('Falta el secreto SESSION_SECRET. Agrégalo en Cloudflare (en el Worker: Configuración → Variables y secretos; en el sitio de pruebas: los secretos de las vistas previas) o con: wrangler secret put SESSION_SECRET.');

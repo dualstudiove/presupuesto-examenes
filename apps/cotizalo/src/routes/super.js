@@ -1,21 +1,20 @@
 // Panel de la plataforma (dominio raíz): crear negocios, administradores y gestionar la tasa.
 import { env } from '../env.js';
 import {
-  db, verifyPassword, hashPassword, HASH_RELLENO, firmarToken, leerToken, marcaPassword, cookie,
-  bloqueoRestante, registrarFallo, limpiarFallos, limite, leerAjuste, guardarAjuste,
+  db, verifyPassword, hashPassword, tipoDeSesion, cerrarOtrasSesiones, credenciales, frenoDeIntentos, comprobarPassword,
+  aplicarSecretosDeRecuperacion, secretosDeRecuperacionActivos,
 } from '@dualstudio/comun/servidor';
-import crypto from 'node:crypto';
 import { crearNegocio, invalidarNegocios } from '../negocio.js';
 import { pasoEjemplo } from '../ejemplo.js';
 import { estadoConsulta, guardarTasaManualGlobal, refrescarTasa, tasaGlobal } from '../bcv.js';
 import { HttpError, uuid, nowIso, str, esColor, esEmail, validarPassword } from '../util.js';
 
 /**
- * Cookie de sesión del superadministrador (vale en toda la app: BASE_PATH).
- * sv = versión de sesión: «Cerrar sesión en los demás dispositivos» la sube y las cookies anteriores dejan de valer.
+ * Sesión del superadministrador (cuentas compartidas de @dualstudio/comun): cookie sid_super, vale en toda la app
+ * (BASE_PATH) durante 8 horas. «Cerrar sesión en los demás dispositivos» sube su versión de sesión.
  */
-export const cookieSesionSuper = (u) =>
-  cookie('sid_super', firmarToken({ k: 's', uid: u.id, ph: marcaPassword(u.password_hash), sv: u.sesion_version ?? 0 }, 8 * 3600), { maxAge: 8 * 3600 });
+export const SESION_SUPER = tipoDeSesion({ cookie: 'sid_super', tipo: 's', horas: 8 });
+export const cookieSesionSuper = (u) => SESION_SUPER.emitir(u);
 
 /** ¿Las cookies traen una sesión válida de superadministrador? (no lanza error) */
 export async function superDe(cookies) {
@@ -23,46 +22,24 @@ export async function superDe(cookies) {
 }
 
 // ── Recuperar el acceso sin terminal ──
-// Si el Worker tiene los secretos SUPER_EMAIL y SUPER_PASSWORD (Cloudflare → Worker → Configuración →
-// Variables y secretos), ese superadministrador se crea, o se le pone esa contraseña si ya existía.
-// Se aplican UNA sola vez: la base recuerda (tabla _ajustes, solo una huella) qué secretos ya se usaron, así que
-// si después cambias la contraseña desde el panel, los secretos no la vuelven a cambiar. El panel avisa mientras
-// sigan guardados en Cloudflare, para que los borres.
-let secretosAplicados = null;
-const huellaSecretos = (email, pw) => crypto.createHash('sha256').update(`${email}\n${pw}`).digest('hex');
-/** Solo para pruebas: imita una instancia nueva del Worker (sin la caché en memoria). */
-export const olvidarCacheDeSecretos = () => { secretosAplicados = null; };
-
-export async function asegurarSuperDesdeSecretos() {
-  const email = String(env.superEmail || '').trim().toLowerCase();
-  const pw = String(env.superPassword || '');
-  if (!email || !pw) return;
-  const clave = `${email}\n${pw}`;
-  if (secretosAplicados === clave) return;
-  secretosAplicados = clave; // también si falla: no se reintenta en cada petición
-  if (!esEmail(email) || pw.length < 8 || pw.length > 200) {
-    console.error('[super] SUPER_EMAIL o SUPER_PASSWORD no son válidos (la contraseña necesita 8 caracteres o más).');
-    return;
-  }
-  const huella = huellaSecretos(email, pw);
-  if ((await leerAjuste('super_secretos_aplicados')) === huella) return; // ya se usaron
-  const u = await db.get('SELECT id, password_hash FROM superadmins WHERE email = ?', [email]);
-  if (!u || !(await verifyPassword(pw, u.password_hash))) {
-    const hash = await hashPassword(pw);
-    if (u) await db.run('UPDATE superadmins SET password_hash = ? WHERE id = ?', [hash, u.id]);
-    else await db.run('INSERT OR IGNORE INTO superadmins (id, email, password_hash, creado_en) VALUES (?,?,?,?)', [uuid(), email, hash, nowIso()]);
-    console.log(`[super] Acceso de superadministrador ${u ? 'restablecido' : 'creado'} desde los secretos.`);
-  }
-  await guardarAjuste('super_secretos_aplicados', huella);
+// Con los secretos SUPER_EMAIL y SUPER_PASSWORD (Cloudflare → Worker → Configuración → Variables y secretos),
+// ese superadministrador se crea, o recibe esa contraseña si ya existía. Se aplican una sola vez (ver cuentas.js).
+export function asegurarSuperDesdeSecretos() {
+  return aplicarSecretosDeRecuperacion({
+    email: env.superEmail,
+    password: env.superPassword,
+    clave: 'super_secretos_aplicados',
+    buscar: (email) => db.get('SELECT id, password_hash FROM superadmins WHERE email = ?', [email]),
+    actualizar: (id, hash) => db.run('UPDATE superadmins SET password_hash = ? WHERE id = ?', [hash, id]),
+    crear: (email, hash) => db.run('INSERT OR IGNORE INTO superadmins (id, email, password_hash, creado_en) VALUES (?,?,?,?)', [uuid(), email, hash, nowIso()]),
+  });
 }
 
 export async function sesionSuper(ctx) {
-  const tok = leerToken(ctx.cookies.sid_super);
-  if (!tok || tok.k !== 's') throw new HttpError(401, 'Inicia sesión para continuar.');
+  const tok = SESION_SUPER.leer(ctx.cookies);
+  if (!tok) throw new HttpError(401, 'Inicia sesión para continuar.');
   const u = await db.get('SELECT id, email, password_hash, sesion_version FROM superadmins WHERE id = ?', [tok.uid]);
-  if (!u || marcaPassword(u.password_hash) !== tok.ph || (tok.sv ?? 0) !== (u.sesion_version ?? 0)) {
-    throw new HttpError(401, 'Tu sesión expiró. Inicia sesión de nuevo.');
-  }
+  if (!SESION_SUPER.vigente(tok, u)) throw new HttpError(401, 'Tu sesión expiró. Inicia sesión de nuevo.');
   return u;
 }
 
@@ -70,25 +47,20 @@ export function registrarSuper(r) {
   const S = { root: true, auth: sesionSuper };
 
   r.add('POST', '/api/super/login', { root: true }, async (ctx) => {
-    const email = str(ctx.body.email, 160).toLowerCase();
-    const pw = typeof ctx.body.password === 'string' ? ctx.body.password.slice(0, 200) : '';
-    if (!limite(`slogin|${ctx.ip}`, 20, 15 * 60_000)) throw new HttpError(429, 'Demasiados intentos. Espera unos minutos.');
-    const key = `s|${email}|${ctx.ip}`;
-    const espera = bloqueoRestante(key);
-    if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
+    const { email, password } = credenciales(ctx.body);
+    const freno = frenoDeIntentos(`s|${email}|${ctx.ip}`, ctx.ip, { maxPorIp: 20, prefijo: 'slogin' });
     const u = await db.get('SELECT id, email, password_hash, sesion_version FROM superadmins WHERE email = ?', [email]);
-    const ok = await verifyPassword(pw, u ? u.password_hash : HASH_RELLENO);
-    if (!u || !ok) {
-      registrarFallo(key);
+    if (!(await comprobarPassword(password, u?.password_hash))) {
+      freno.fallo();
       throw new HttpError(401, 'Correo o contraseña incorrectos.');
     }
-    limpiarFallos(key);
+    freno.exito();
     ctx.setCookies.push(cookieSesionSuper(u));
     return { email: u.email };
   });
 
   r.add('POST', '/api/super/logout', { root: true }, async (ctx) => {
-    ctx.setCookies.push(cookie('sid_super', '', { expire: true }));
+    ctx.setCookies.push(SESION_SUPER.cerrar());
     return { ok: true };
   });
 
@@ -108,15 +80,15 @@ export function registrarSuper(r) {
 
   // Cierra la sesión en todos los demás navegadores (p. ej. si alguien pudo copiar la cookie). Esta sigue abierta.
   r.add('POST', '/api/super/sesiones/cerrar', S, async ({ usuario, setCookies }) => {
-    await db.run('UPDATE superadmins SET sesion_version = COALESCE(sesion_version, 0) + 1 WHERE id = ?', [usuario.id]);
-    setCookies.push(cookieSesionSuper({ ...usuario, sesion_version: (usuario.sesion_version ?? 0) + 1 }));
+    const sv = await cerrarOtrasSesiones('superadmins', usuario);
+    setCookies.push(cookieSesionSuper({ ...usuario, sesion_version: sv }));
     return { ok: true };
   });
 
   r.add('GET', '/api/super/me', S, async ({ usuario }) => ({
     email: usuario.email, base_path: env.basePath, ejemplo: env.datosEjemplo,
     // Los secretos de recuperación siguen guardados en Cloudflare: conviene borrarlos.
-    secretos_recuperacion: Boolean(env.superEmail || env.superPassword),
+    secretos_recuperacion: secretosDeRecuperacionActivos(),
   }));
 
   r.add('GET', '/api/super/negocios', S, async () => {
@@ -162,14 +134,12 @@ export function registrarSuper(r) {
     const n = await db.get('SELECT id, slug, nombre FROM negocios WHERE id = ?', [params.id]);
     if (!n) throw new HttpError(404, 'El negocio no existe.');
     if (String(body.nombre ?? '').trim() !== n.nombre.trim()) throw new HttpError(400, 'El nombre escrito no coincide con el del negocio.');
-    const key = `del|${usuario.id}|${ip}`;
-    const espera = bloqueoRestante(key);
-    if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
+    const freno = frenoDeIntentos(`del|${usuario.id}|${ip}`, ip, { prefijo: 'del' });
     if (!(await verifyPassword(String(body.password || '').slice(0, 200), usuario.password_hash))) {
-      registrarFallo(key);
+      freno.fallo();
       throw new HttpError(400, 'La contraseña no es correcta.');
     }
-    limpiarFallos(key);
+    freno.exito();
     // Todo en un solo lote (o se borra todo o nada), de los datos que dependen de otros hacia el negocio.
     await db.tx(async (t) => {
       await t.run('DELETE FROM presupuesto_examenes WHERE negocio_id = ?', [n.id]);

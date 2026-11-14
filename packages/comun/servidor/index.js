@@ -14,4 +14,8 @@ export {
 } from './auth.js';
 export { crearEsquema, instrucciones, TABLAS_COMUNES } from './esquema.js';
 export { cuotaDiaria, cuotaDeHoy, leerAjuste, guardarAjuste } from './cuotas.js';
+export {
+  tipoDeSesion, cerrarOtrasSesiones, credenciales, frenoDeIntentos, comprobarPassword,
+  aplicarSecretosDeRecuperacion, secretosDeRecuperacionActivos, olvidarCacheDeSecretos,
+} from './cuentas.js';
 export { crearServidor, conSeguridad, respJson, respHtml, CSP, CABECERAS_SEGURIDAD } from './servidor.js';

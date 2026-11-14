@@ -1,8 +1,8 @@
 // Inicio de sesión único (página principal de la app): según el correo y la contraseña,
 // abre el panel del superadministrador o el del negocio que administra esa persona.
 import { env } from '../env.js';
-import { db, verifyPassword, HASH_RELLENO, bloqueoRestante, registrarFallo, limpiarFallos, limite } from '@dualstudio/comun/servidor';
-import { HttpError, str } from '../util.js';
+import { db, verifyPassword, HASH_RELLENO, credenciales, frenoDeIntentos } from '@dualstudio/comun/servidor';
+import { HttpError } from '../util.js';
 import { cookieSesionSuper, superDe } from './super.js';
 import { cookieSesionAdmin } from './admin.js';
 
@@ -17,13 +17,9 @@ export function registrarAcceso(r) {
    * los que coincidan con la contraseña y, si son varios, la página deja elegir.
    */
   r.add('POST', '/api/login', { root: true }, async (ctx) => {
-    const email = str(ctx.body.email, 160).toLowerCase();
-    const pw = typeof ctx.body.password === 'string' ? ctx.body.password.slice(0, 200) : '';
+    const { email, password: pw } = credenciales(ctx.body);
     if (!email || !pw) throw new HttpError(400, 'Escribe tu correo y tu contraseña.');
-    if (!limite(`login|${ctx.ip}`, 30, 15 * 60_000)) throw new HttpError(429, 'Demasiados intentos. Espera unos minutos.');
-    const key = `l|${email}|${ctx.ip}`;
-    const espera = bloqueoRestante(key);
-    if (espera) throw new HttpError(429, `Demasiados intentos fallidos. Intenta de nuevo en ${Math.ceil(espera / 60)} minuto(s).`);
+    const freno = frenoDeIntentos(`l|${email}|${ctx.ip}`, ctx.ip);
 
     const base = env.basePath;
     const sup = await db.get('SELECT id, email, password_hash, sesion_version FROM superadmins WHERE email = ?', [email]);
@@ -38,7 +34,7 @@ export function registrarAcceso(r) {
     if (!sup && !admins.length) await verifyPassword(pw, HASH_RELLENO);
 
     if (sup && (await verifyPassword(pw, sup.password_hash))) {
-      limpiarFallos(key);
+      freno.exito();
       ctx.setCookies.push(cookieSesionSuper(sup));
       return { rol: 'super', destino: `${base}/super` };
     }
@@ -53,11 +49,11 @@ export function registrarAcceso(r) {
       negocios.push({ slug: a.slug, nombre: a.nombre, destino: `${base}/${a.slug}/admin` });
     }
     if (negocios.length) {
-      limpiarFallos(key);
+      freno.exito();
       return { rol: 'admin', destino: negocios.length === 1 ? negocios[0].destino : null, negocios };
     }
     if (suspendido) throw new HttpError(403, 'Tu negocio está suspendido. Escribe al equipo de la plataforma.');
-    registrarFallo(key);
+    freno.fallo();
     throw new HttpError(401, 'Correo o contraseña incorrectos.');
   });
 
