@@ -6,7 +6,7 @@
   "engines": { "node": ">=22.13" },
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && node --test \"herramientas/test/*.test.js\"",
     "dev:cotizalo": "npm run dev -w cotizalo",
     "dev:central": "npm run dev -w central",
     "deploy:cotizalo": "npm run deploy -w cotizalo",
